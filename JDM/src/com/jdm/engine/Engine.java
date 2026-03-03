@@ -1,5 +1,6 @@
 package com.jdm.engine;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
@@ -7,14 +8,15 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.Pane;
 
-public class Engine {
+class Engine {
 	
 	public static Document build( Document document ) {
-
 		try {
-		
-			Class<?> clss = document.getClass();
 
+			Object model = document._model;
+
+			Class<?> clss = model.getClass();
+			
 			Field field = null;
 
 			Object root  = null;
@@ -33,7 +35,7 @@ public class Engine {
 
 				field.setAccessible(true);
 
-				root = field.get(document);
+				root = field.get( model );
 
 				field.setAccessible(flag);
 
@@ -53,7 +55,7 @@ public class Engine {
 
 					_field.setAccessible(true);
 
-					root = _field.get(document);
+					root = _field.get( model );
 
 					_field.setAccessible(flag);
 
@@ -79,69 +81,89 @@ public class Engine {
 
 				System.err.println("WARNING: root é nulo");
 
+				root = instace(field, model);
+
 			}
 
-			Element el = new Element();
+			document.root = (Parent) load(document, field, null, (Node) root);
 
-			el.field = field;
-			
-			el.node = (Node) root;
-
-			document.root = load( document, el );
-			
 		} catch (Exception e) { e.printStackTrace(); }
 		
 		return document;
 
 	}
+	
+	private static Node load( Document document, Field field, Node father, Node node ) throws Exception {
 
-	private static Element load( Document document, Element element ) throws Exception {
+		if (node == null) node = instace( field, father );
 
-		Node node = element.node;
+		Manager.configure(document, field, father, node);
 
-		if (node == null) {
-
-			node = element.instace();
-
-		}
-
-		element.pack( document );
-		
 		if (node instanceof Pane) {
 
 			boolean flag = false;
 
 			Field[] fields = node.getClass().getDeclaredFields();
 			
-			for ( Field field : fields ) {
+			for ( Field _field : fields ) {
 
-				if (shouldSkip(field)) continue;
+				if (shouldSkip(_field)) continue;
 
 				else {
 
-					flag = field.isAccessible();
+					flag = _field.isAccessible();
 
-					field.setAccessible(true);
-					
-					Element el = new Element();
-					
-					el.father = element;
-					
-					el.field = field;
-					
-					el.node = (Node) field.get(node);
-					
-					load(document, el);
+					_field.setAccessible(true);
 
-					field.setAccessible(flag);
+					load( document, _field, node, (Node) _field.get(node) );
+
+					_field.setAccessible(flag);
 
 				}
 
 			}
 
 		}
-		
-		return element;
+
+		return node;
+	}
+	
+	public static Node instace( Field field, Object father ) throws Exception {
+
+		boolean flag = field.isAccessible();
+
+		field.setAccessible(true);
+
+		Class<?> clss = field.getType();
+
+        Class<?> externalClass = clss.getDeclaringClass();
+
+        Object instace = null;
+
+        if (externalClass != null && !Modifier.isStatic(clss.getModifiers())) {
+
+        	Constructor<?> ctor = clss.getDeclaredConstructor(externalClass);
+
+        	ctor.setAccessible(true);
+
+        	instace = ctor.newInstance(father);
+
+        } else {
+
+        	Constructor<?> ctor = clss.getDeclaredConstructor();
+
+            ctor.setAccessible(true);
+
+            instace = ctor.newInstance();
+
+        }
+
+        field.set( father, instace );
+
+        field.setAccessible(flag);
+
+        return (Node) instace;
+
 	}
 	
 	public static boolean shouldSkip(Field field) {

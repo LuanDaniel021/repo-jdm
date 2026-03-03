@@ -1,57 +1,76 @@
 package com.jdm.engine;
 
+import java.lang.reflect.Constructor;
 import java.util.HashMap;
 import java.util.Map;
 
+import javafx.scene.Node;
 import javafx.scene.Parent;
 
-public class Document {
+public class Document extends Prototype<Parent> {
 
-	final Map<String, Integer> current_types;
+	final Map<String, Integer> currentTypes;
 	
-	final Map<String, Element> elements;
-
-	StringBuilder stylesheet;
-
-	Header header;
-
-	Element root;
+	final Map<String, Node> elements;
 	
-	{
-		this.current_types = new HashMap<String, Integer>();
-		this.elements = new HashMap<String, Element>();
-		this.stylesheet = new StringBuilder();
-		this.root = null;
+	{ 
+		this.currentTypes = new HashMap<>();
+		this.elements = new HashMap<String, Node>();
 	}
 
-	public static Document build(Document doc) {
+	final Object _model;
 
-		return Engine.build( doc );
+	public Document( Object instace ) throws Exception {
+
+		if ( instace == null ) {
+
+			throw new Error( " Document - instace == null " );
+
+		}
+
+		_model = instace;
+
+	}
+	
+	public Document( Class<?> c ) throws Exception {
+
+		Object instace = null;
+
+		boolean flag = false;
+
+		Constructor<?> ctor = c.getDeclaredConstructor();
+
+		flag = ctor.isAccessible();
+
+		ctor.setAccessible(true);
+
+		instace = ctor.newInstance();
+
+        ctor.setAccessible(flag);
+
+		if ( instace == null ) {
+
+			throw new Error( " Document - instace == null " );
+
+		}
+
+		_model = instace;
 
 	}
 
-	public Document build() {
+	public Document build() { return Engine.build( this ); }
 
-		return build( this );
-
+	public int getCurrent(Class<?> type) {
+		return currentTypes.get(type.getSimpleName());
+	}
+	
+	public int setCurrent(Class<?> type, int value) {
+		return currentTypes.put(type.getSimpleName(), value);
 	}
 
-	public Parent getRoot() {
-
-		return (Parent) root.node;
-
-	}
-
-	public StringBuilder getStylesheet() {
-
-		return stylesheet;
-
-	}
-
-	public Element getElementById(String key) {
+	public Node getElementById(String key) {
 
 		return elements.get(key);
 
 	}
-
 }

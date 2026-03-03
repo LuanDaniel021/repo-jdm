@@ -1,11 +1,6 @@
 package com.jdm.engine;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 
 import com.jdm.meta.Column;
 import com.jdm.meta.ID;
@@ -37,88 +32,35 @@ import javafx.scene.layout.VBox;
 
 public class Element {
 	
-	public Node node;
+	static boolean _id(Node node, String _name, String _class, int current, ID i) {
 
-	Field field;
-
-	Element father;
-
-	List<Element> children;
-
-	public final StringBuilder styles;
-
-	private int current_type;
-	
-	private boolean ignore;
-
-	{
-		children = new ArrayList<>();
-		styles = new StringBuilder();
-	}
-	
-	public Node instace() throws Exception {
+		boolean flag = false;
 		
-		boolean flag = field.isAccessible();
-
-		field.setAccessible(true);
-
-		Class<?> clss = field.getType();
-
-        Class<?> externalClass = clss.getDeclaringClass();
-
-        if (externalClass != null && !Modifier.isStatic(clss.getModifiers())) {
-
-        	Constructor<?> ctor = clss.getDeclaredConstructor(externalClass);
-
-        	ctor.setAccessible(true);
-
-        	node = (Node) ctor.newInstance(father.node);
-
-        } else {
-
-        	Constructor<?> ctor = clss.getDeclaredConstructor();
-
-            ctor.setAccessible(true);
-
-            node = (Node) ctor.newInstance();
-
-        }
-        
-        field.set( father.node, node );
-
-        field.setAccessible(flag);
-
-        return node;
-
-	}
-	
-	public void _id(ID i) {
-
-		String value = "";
-
     	if (i != null) {
 
-    		value = i.value();
+    		String value = i.value();
+    		
+    		if ( value.isEmpty() ) {
 
+    			value = String.format("%s-%d", _class, current);
+    			
+    			flag = true;
+
+    		}
+    		
+    		node.setId(value);
+    		
     	} else {
     		
-    		ignore = true;
-    		
+    		node.setId(_name);
+
     	}
-
-		if ( value.isEmpty() ) {
-
-			value = String.format("%s-%d", field.getType().getSimpleName(), current_type);
-    		
-		}
-
-    	node.setId(value);
+    	
+    	return flag;
 
 	}
 
-	public void _class(com.jdm.meta.Class c) {
-		
-		String type = field.getType().getSimpleName();
+	static void _class(Node node, String type, com.jdm.meta.Class c) {
 		
     	node.getStyleClass().add( type );
 
@@ -130,7 +72,7 @@ public class Element {
 
 	}
 
-	public void _layout(Layout l) {
+	static void _layout(Node node, Layout l) {
 
     	if (l.vgrow() != Priority.NEVER) VBox.setVgrow(node, l.vgrow());
 
@@ -176,9 +118,9 @@ public class Element {
 
 	}
 
-	public void _styles(Style[] s) { StylesManager.load(this, s); }
+	static StringBuilder _styles(Node node, Style[] s) { return StylesManager.load(node, s); }
 
-	public void _columns(Column[] c) {
+	static void _columns(Node node, Column[] c) {
 
 		if (node instanceof GridPane) { GridPane grid = (GridPane) node;
 
@@ -210,7 +152,7 @@ public class Element {
 
 	}
 
-	public void _rows(Row[] r) {
+	static void _rows(Node node, Row[] r) {
 
 		if (node instanceof GridPane) { GridPane grid = (GridPane) node;
 
@@ -242,7 +184,7 @@ public class Element {
 
 	}
 
-	public void _image(com.jdm.meta.Image i) {
+	static void _image(Node node, com.jdm.meta.Image i) {
 
 		if (node instanceof ImageView) {
 
@@ -264,10 +206,8 @@ public class Element {
 
 	}
 	
-	public boolean _linker(Layout l) {
+	static boolean _linker(Node father, Node node, Layout l) {
 		
-		Node father = this.father.node;
-
 		//1. O Rei dos Layouts: GridPane
 	    if (father instanceof GridPane) {
 
@@ -392,35 +332,35 @@ public class Element {
 
 	public void pack(Document document) throws Exception {
 		
-		String type = field.getType().getSimpleName();
-		
-		current_type = 0;
-
-		if (!document.current_types.containsKey(type)) {
-
-			document.current_types.put(type, current_type);
-
-		} else {
-
-			current_type = document.current_types.get(type);
-
-		}
-
-		current_type++;
-
-		document.current_types.put(type, current_type);
-		
-		if ( Manager.configure( document, this ) ) {
-			
-			if ( !ignore ) {
-
-				document.elements.put(node.getId(), this);
-
-			}
-
-    		document.stylesheet.append( styles.toString() );
-
-    	}
+//		String type = field.getType().getSimpleName();
+//		
+//		current_type = 0;
+//
+//		if (!document.current_types.containsKey(type)) {
+//
+//			document.current_types.put(type, current_type);
+//
+//		} else {
+//
+//			current_type = document.current_types.get(type);
+//
+//		}
+//
+//		current_type++;
+//
+//		document.current_types.put(type, current_type);
+//		
+//		if ( Manager.configure( document, this ) ) {
+//			
+//			if ( !ignore ) {
+//
+//				document.elements.put(node.getId(), this);
+//
+//			}
+//
+//    		document.stylesheet.append( styles.toString() );
+//
+//    	}
 
 	}
 

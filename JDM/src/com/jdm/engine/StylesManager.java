@@ -6,6 +6,8 @@ import java.util.Set;
 
 import com.jdm.meta.Style;
 
+import javafx.scene.Node;
+
 public class StylesManager {
 	
 	private static final Method[] mStyle = Style.class.getDeclaredMethods();
@@ -22,13 +24,13 @@ public class StylesManager {
 		
 	}
 	
-	public static void load(Element el, Style[] styles) {
+	public static StringBuilder load(Node node, Style[] styles) {
 
-		try {
+		StringBuilder css = new StringBuilder();
 		
-			StringBuilder css = el.styles;
+		try {
 			
-			String id = String.format("#%s", el.node.getId());
+			String id = String.format("#%s", node.getId());
 			
 			for (Style s : styles) {
 		
@@ -63,6 +65,8 @@ public class StylesManager {
 			}
 			
 		} catch (Exception e) { e.printStackTrace(); }
+		
+		return css;
 		
 	}
 

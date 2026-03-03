@@ -1,11 +1,9 @@
 package com.jdm.engine;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-import java.util.function.BiConsumer;
 
-import com.jdm.meta.Column;
 import com.jdm.meta.Class;
+import com.jdm.meta.Column;
 import com.jdm.meta.ID;
 import com.jdm.meta.Ignore;
 import com.jdm.meta.Image;
@@ -13,18 +11,18 @@ import com.jdm.meta.Layout;
 import com.jdm.meta.Row;
 import com.jdm.meta.Style;
 
-public class Manager {
-	
-	public static boolean configure(Document document, Element el) throws Exception {
+import javafx.scene.Node;
 
-		Field field = el.field;
+public class Manager {
+
+	public static boolean configure(Document document, Field field, Node father, Node node) {
 		
 		if (field.isAnnotationPresent(Ignore.class)) {
 
 			return false;
 
     	}
-
+		
 		ID id = field.getDeclaredAnnotation(ID.class);
 
 		Class _class = field.getDeclaredAnnotation(Class.class);
@@ -39,39 +37,52 @@ public class Manager {
 
 		Image image = field.getAnnotation(Image.class);
 
-		handle(el,      id, Element::_id);
+		int cur = 0;
+		
+		String key = field.getType().getSimpleName();
+		
+		if ( !document.currentTypes.containsKey( key ) ) {
+			
+			document.currentTypes.put( key, cur );
+			
+		} else {
+			
+			cur = document.currentTypes.get(key);
+			
+		}
+		
+		cur++;
+		
+		if ( Element._id(node, field.getName(), key, cur, id) ) {
 
-		handle(el,  _class, Element::_class);
+			document.currentTypes.put( key, cur );
+			
+			document.elements.put( node.getId(), node );
+
+		}
+		
+		Element._class(node, key, _class);
 
 		if ( layout != null ) {
 
-			handle(el, layout, Element::_layout);
+			Element._layout(node, layout);
 
 		}
-
-		handle(el,  styles, Element::_styles);
-
-		handle(el, columns, Element::_columns);
-
-		handle(el,    rows, Element::_rows);
-
-		handle(el,   image, Element::_image);
-
-		if (el.father != null) {
-			
-			handle(el,  layout, Element::_linker); 
 		
+		document.stylesheet.append( Element._styles( node, styles).toString() );
+		
+		Element._columns( node, columns );
+		Element._rows( node, rows);
+		Element._image( node, image );
+
+		if ( father != null ) {
+
+			Element._linker( father, node, layout);
+
 		}
 
 		return true;
-
+		
 	}
 	
-	private static <T extends Annotation> void handle(Element el, T annotation, BiConsumer<Element, T> consumer) {
-        consumer.accept(el, annotation);
-	}
-	
-	private static <T extends Annotation> void handle(Element el, T[] annotation, BiConsumer<Element, T[]> consumer) {
-		consumer.accept(el, annotation);
-	}
 }
