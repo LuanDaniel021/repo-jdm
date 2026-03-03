@@ -78,17 +78,21 @@ public class Engine {
 
 			}
 
+			Element el = new Element();
+
+			el.field = field;
+			
+			el.node = (Node) root;
+
 			if (root == null) {
 
 				System.err.println("WARNING: root é nulo");
 
+				el.instace();
+
 			}
 
-			Element element = new Element();
-			
-			element.node = (Node) root;
-			
-			document.root = load( element );
+			document.root = load( document, el );
 			
 		} catch (Exception e) { e.printStackTrace(); }
 		
@@ -96,8 +100,10 @@ public class Engine {
 
 	}
 
-	private static Element load( Element element ) throws IllegalArgumentException, IllegalAccessException {
+	private static Element load( Document document, Element element ) throws Exception {
 
+		element.document = document;
+		
 		Node node = element.node;
 		
 		if (node == null) {
@@ -105,6 +111,10 @@ public class Engine {
 			node = element.instace();
 
 		}
+		
+		Manager.configure( document, element );
+		
+		document.stylesheet.append( element.styles.toString() );
 		
 		if (node instanceof Pane) {
 
@@ -123,10 +133,14 @@ public class Engine {
 					field.setAccessible(true);
 					
 					Element el = new Element();
-
+					
+					el.father = element;
+					
+					el.field = field;
+					
 					el.node = (Node) field.get(node);
 					
-					element.children.add( load( el ) );
+					element.append( load(document, el) );
 
 					field.setAccessible(flag);
 

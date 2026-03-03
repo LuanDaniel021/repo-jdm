@@ -8,8 +8,4 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target({ FIELD })
-public @interface ID {
-
-	String value() default "";
-
-}
+public @interface Ignore {}
