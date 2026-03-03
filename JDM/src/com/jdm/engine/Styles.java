@@ -1,3 +1,3 @@
-package com.jdm.model;
+package com.jdm.engine;
 
 public class Styles {}

@@ -1,4 +1,4 @@
-package com.jdm.model;
+package com.jdm.engine;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -7,8 +7,6 @@ import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jdm.Document;
-import com.jdm.engine.StylesManager;
 import com.jdm.meta.Column;
 import com.jdm.meta.ID;
 import com.jdm.meta.Layout;
@@ -39,17 +37,19 @@ import javafx.scene.layout.VBox;
 
 public class Element {
 	
-	public Document document;
-
 	public Node node;
 
-	public Field field;
+	Field field;
 
-	public Element father;
+	Element father;
 
-	public List<Element> children;
+	List<Element> children;
 
 	public final StringBuilder styles;
+
+	private int current_type;
+	
+	private boolean ignore;
 
 	{
 		children = new ArrayList<>();
@@ -92,25 +92,7 @@ public class Element {
 
 	}
 	
-	public String getId() {
-		return node.getId();
-	}
-
-	public void delete(Element el) {
-		children.remove( el );
-	}
-	
-	public void append(Element el) {
-		children.add( el );
-	}
-	
-	public void remove() {
-		father.delete( this );
-	}
-	
 	public void _id(ID i) {
-
-		boolean ignore = false;
 
 		String value = "";
 
@@ -124,35 +106,11 @@ public class Element {
     		
     	}
 
-    	if ( value.isEmpty() ) {
+		if ( value.isEmpty() ) {
 
-    		String type = field.getType().getSimpleName();
-
-    		int count = 0;
-
-    		if (!document.current_types.containsKey(type)) {
-
-    			document.current_types.put(type, count);
-
-    		} else {
-
-    			count = document.current_types.get(type);
-
-    		}
-
-    		count++;
-
-    		value = String.format("%s-%d", type , count);
-
-    		document.current_types.put(type, count);
-
+			value = String.format("%s-%d", field.getType().getSimpleName(), current_type);
+    		
 		}
-
-    	if ( !ignore ) {
-
-    		document.elements.put(value, this);
-
-    	}
 
     	node.setId(value);
 
@@ -171,7 +129,6 @@ public class Element {
     	}
 
 	}
-
 
 	public void _layout(Layout l) {
 
@@ -253,7 +210,6 @@ public class Element {
 
 	}
 
-
 	public void _rows(Row[] r) {
 
 		if (node instanceof GridPane) { GridPane grid = (GridPane) node;
@@ -286,7 +242,6 @@ public class Element {
 
 	}
 
-
 	public void _image(com.jdm.meta.Image i) {
 
 		if (node instanceof ImageView) {
@@ -309,7 +264,6 @@ public class Element {
 
 	}
 	
-
 	public boolean _linker(Layout l) {
 		
 		Node father = this.father.node;
@@ -433,6 +387,40 @@ public class Element {
 	    }
 
 	    return false;
+
+	}
+
+	public void pack(Document document) throws Exception {
+		
+		String type = field.getType().getSimpleName();
+		
+		current_type = 0;
+
+		if (!document.current_types.containsKey(type)) {
+
+			document.current_types.put(type, current_type);
+
+		} else {
+
+			current_type = document.current_types.get(type);
+
+		}
+
+		current_type++;
+
+		document.current_types.put(type, current_type);
+		
+		if ( Manager.configure( document, this ) ) {
+			
+			if ( !ignore ) {
+
+				document.elements.put(node.getId(), this);
+
+			}
+
+    		document.stylesheet.append( styles.toString() );
+
+    	}
 
 	}
 

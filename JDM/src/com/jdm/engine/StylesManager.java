@@ -5,7 +5,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 import com.jdm.meta.Style;
-import com.jdm.model.Element;
 
 public class StylesManager {
 	

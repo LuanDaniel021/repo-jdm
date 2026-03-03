@@ -3,9 +3,6 @@ package com.jdm.engine;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
-import com.jdm.Document;
-import com.jdm.model.Element;
-
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.layout.Pane;
@@ -78,19 +75,17 @@ public class Engine {
 
 			}
 
+			if (root == null) {
+
+				System.err.println("WARNING: root é nulo");
+
+			}
+
 			Element el = new Element();
 
 			el.field = field;
 			
 			el.node = (Node) root;
-
-			if (root == null) {
-
-				System.err.println("WARNING: root é nulo");
-
-				el.instace();
-
-			}
 
 			document.root = load( document, el );
 			
@@ -102,19 +97,15 @@ public class Engine {
 
 	private static Element load( Document document, Element element ) throws Exception {
 
-		element.document = document;
-		
 		Node node = element.node;
-		
+
 		if (node == null) {
 
 			node = element.instace();
 
 		}
-		
-		Manager.configure( document, element );
-		
-		document.stylesheet.append( element.styles.toString() );
+
+		element.pack( document );
 		
 		if (node instanceof Pane) {
 
@@ -140,7 +131,7 @@ public class Engine {
 					
 					el.node = (Node) field.get(node);
 					
-					element.append( load(document, el) );
+					load(document, el);
 
 					field.setAccessible(flag);
 

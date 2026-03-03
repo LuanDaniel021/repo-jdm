@@ -5,7 +5,6 @@ import java.lang.reflect.Field;
 import java.util.function.BiConsumer;
 
 import com.jdm.meta.Column;
-import com.jdm.Document;
 import com.jdm.meta.Class;
 import com.jdm.meta.ID;
 import com.jdm.meta.Ignore;
@@ -13,7 +12,6 @@ import com.jdm.meta.Image;
 import com.jdm.meta.Layout;
 import com.jdm.meta.Row;
 import com.jdm.meta.Style;
-import com.jdm.model.Element;
 
 public class Manager {
 	
@@ -64,7 +62,6 @@ public class Manager {
 			handle(el,  layout, Element::_linker); 
 		
 		}
-		
 
 		return true;
 
