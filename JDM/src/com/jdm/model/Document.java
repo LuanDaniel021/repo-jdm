@@ -53,11 +53,11 @@ public final class Document {
 
 	public void build() throws Exception {
 
-		build_struct( Struct.handle( this._model, Struct::build ) );
+		build( Struct.handle( this._model, Struct::build ) );
 		
 	}
 	
-	private void build_struct(Struct st) throws Exception {
+	private void build(Struct st) throws Exception {
 		
 		root = st.root;
 		

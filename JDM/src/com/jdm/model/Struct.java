@@ -73,7 +73,7 @@ class Struct {
 
 		Element el = new Element( instance(father, field), field );
 
-		el.current = current( el._type_name );
+		el.current = current.merge(el._type_name, 1, Integer::sum);
 
 		if ( el._ignore ) return el;
 		
@@ -118,24 +118,6 @@ class Struct {
 		}
 
 		return el;
-	}
-
-	private int current( String key ) {
-		int count = 0;
-		
-		if ( !current.containsKey( key ) ) {
-			
-			current.put( key, count );
-			
-		} else {
-			
-			count = current.get(key);
-			
-		}
-		
-		count++;
-		
-		return count;
 	}
 	
 	private static Node instance( Object father, Field field ) throws Exception {
