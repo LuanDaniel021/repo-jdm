@@ -9,14 +9,11 @@ public final class Document {
 
 	final StringBuilder stylesheet;
 	
-	protected final Object _model;
+	final Object _model;
 
 	Parent root;
 	
-	{
-		this.stylesheet = new StringBuilder();
-		this.root = null;
-	}
+	{ this.stylesheet = new StringBuilder(); }
 
 	public Document( Object instace ) throws Exception {
 
@@ -56,7 +53,15 @@ public final class Document {
 
 	public void build() throws Exception {
 
-		Struct.build( this );
+		build_struct( Struct.handle( this._model, Struct::build ) );
+		
+	}
+	
+	private void build_struct(Struct st) throws Exception {
+		
+		root = st.root;
+		
+		stylesheet.append( st.styles.toString() );
 
 	}
 
@@ -75,4 +80,6 @@ public final class Document {
 		return stylesheet.toString();
 
 	}
+	
+	interface Builder<T> { T build( Object model ) throws Exception; }
 }

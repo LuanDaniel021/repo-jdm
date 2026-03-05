@@ -6,7 +6,7 @@ import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.jdm.model.Element.Err;
+import com.jdm.model.Document.Builder;
 import com.jdm.model.engine.Link;
 import com.jdm.model.engine.Link.Linker;
 
@@ -15,13 +15,15 @@ import javafx.scene.Parent;
 
 class Struct {
 
-	public static Struct build( Document document ) throws Exception { return new Struct(document); }
-	
-	Map<String, Integer> current = new HashMap<String, Integer>();
-	
-	private Struct( Document document ) throws Exception {
-		Object model = document._model;
+	public static Struct build( Object model ) throws Exception { return new Struct( model ); }
 
+	Map<String, Integer> current = new HashMap<String, Integer>();
+
+	StringBuilder styles = new StringBuilder();
+	
+	Parent root;
+
+	private Struct( Object model ) throws Exception {
 		Class<?> clss = model.getClass();
 
 		Field field = null;
@@ -64,26 +66,18 @@ class Struct {
 
 		}
 		
-		document.root = (Parent) load( document.stylesheet, model, field )._node;
+		root = (Parent) load( model, field )._node;
 	}
 
-	private Element load(StringBuilder styles, Object father, Field field ) throws Exception {
+	private Element load( Object father, Field field ) throws Exception {
 
-		boolean flag = field.isAccessible();
+		Element el = new Element( instance(father, field), field );
 
-		field.setAccessible(true);
-
-		Node node = instace(father, field);
-
-		field.setAccessible(flag);
-
-		Element el = new Element( node, field );
-
-		if (el._ignore) return el;
-		
-		if ( node instanceof Element.Err ) return el.err();
-				
 		el.current = current( el._type_name );
+
+		if ( el._ignore ) return el;
+		
+		if ( !el._ok ) return el.err();
 		
 		el.pack();
 		
@@ -93,13 +87,15 @@ class Struct {
 
 		}
 
-		styles.append(el.stylesheet);
+		styles.append( el.stylesheet );
 
-		Linker path = Link.get( node );
+		if (el.genered) return el;
+		
+		Linker path = Link.get( el._node );
 		
 		if ( path != null ) {
 
-			Field[] fields = node.getClass().getDeclaredFields();
+			Field[] fields = el._node.getClass().getDeclaredFields();
 
 			for ( Field _field : fields ) {
 
@@ -107,11 +103,11 @@ class Struct {
 
 				else {
 
-					Element child = load( styles, node, _field );
+					Element child = load( el._node, _field );
 							
 					if (!child._ignore) {
 						
-						path.link( node, child);
+						path.link( el._node, child);
 
 					}
 
@@ -123,7 +119,7 @@ class Struct {
 
 		return el;
 	}
-	
+
 	private int current( String key ) {
 		int count = 0;
 		
@@ -142,46 +138,50 @@ class Struct {
 		return count;
 	}
 	
-	private Node instace( Object father, Field field ) throws Exception {
+	private static Node instance( Object father, Field field ) throws Exception {
 
-		Object instace = field.get( father );
+		boolean flag = field.isAccessible();
 
-		if (instace == null) {
+		field.setAccessible(true);
+
+		Object instance = field.get( father );
+
+		Class<?> clss = field.getType();
+		
+		if (instance == null) {
 			try {
+				Constructor<?> ctor = clss.getDeclaredConstructor();
 
-				Class<?> clss = field.getType();
+	            ctor.setAccessible(true);
 
-		        Class<?> externalClass = clss.getDeclaringClass();
-
-		        if (externalClass != null && !Modifier.isStatic(clss.getModifiers())) {
-
-		        	Constructor<?> ctor = clss.getDeclaredConstructor(externalClass);
-
-		        	ctor.setAccessible(true);
-
-		        	instace = ctor.newInstance(father);
-
-		        } else {
-
-		        	Constructor<?> ctor = clss.getDeclaredConstructor();
-
-		            ctor.setAccessible(true);
-
-		            instace = ctor.newInstance();
-
-		        }
-
-		        field.set( father, instace );
-
-			} catch (Exception e) {
-
-				System.err.println( String.format("Error: falha ao carregar field '%s'", field.getName()) );
-
-				 instace = new Err();
+	            instance = ctor.newInstance();
 			}
+
+			catch (NoSuchMethodException e) {
+
+	        	Constructor<?> ctor = clss.getDeclaredConstructor( clss.getDeclaringClass() );
+
+	        	ctor.setAccessible(true);
+	        	
+        		instance = ctor.newInstance(father);
+
+        	}
+
+			if ( instance != null ) {
+
+				field.set( father, instance );	
+
+			} else {
+
+				instance = new Element.Error();
+
+			}
+
 		}
 
-        return (Node) instace;
+		field.setAccessible(flag);
+
+        return (Node) instance;
 
 	}
 
@@ -192,5 +192,7 @@ class Struct {
         	clss.isPrimitive()  || clss.isInterface() || clss.isEnum() ||
         	Modifier.isAbstract(clss.getModifiers());
     }
+
+	public static Struct handle(Object model, Builder<Struct> bd) throws Exception { return bd.build(model); }
 
 }

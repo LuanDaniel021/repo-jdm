@@ -33,6 +33,8 @@ public class Element {
 
 	public final boolean _ignore;
 
+	public final boolean _ok;
+	
 	public final ID _id;
 
 	public final Class _class;
@@ -58,10 +60,18 @@ public class Element {
 	public int current;
 	
 	public boolean isGenericID;
+	
+	public boolean anonymus;
+	
+	public boolean instaced;
+	
+	public boolean genered;
 
 	public Element( Node node, Field field ) {
 
 		_ignore = field.isAnnotationPresent(Ignore.class);
+
+		_ok = !(node instanceof Error);
 
 		_id = field.getDeclaredAnnotation(ID.class);
 
@@ -88,9 +98,15 @@ public class Element {
 		current = -1;
 
 		isGenericID = false;
+		
+		anonymus = node.getClass().isAnonymousClass();
+		
+		instaced = !anonymus && _type.isMemberClass();
+		
+		genered = !anonymus && !instaced;
 
 	}
-	
+
 	public Element pack() {
 
 		configure( this, Element::ID );
@@ -125,11 +141,8 @@ public class Element {
 		
 		configure( el, Element::ID );
 
-		configure( el, Element::CLASS );
-
 		configure( el, Element::LAYOUT );
 
-		el._node.setStyle("-fx-background-color:red; -fx-pref-width:50; -fx-pref-height:50");
 	}
 	
 	private static void ID(Element el) {
@@ -308,12 +321,10 @@ public class Element {
 	@FunctionalInterface
 	interface Configure { void exe(Element el); }
 	
-	static class Err extends ImageView {
+	static class Error extends Region {
 
-		public Err() {
-			setImage( new Image("https://www.flaticon.com/free-icon/warning_552871.png") );
-		}
-		
+		Error() { setStyle("-fx-background-color:red; -fx-pref-width:50; -fx-pref-height:50"); }
+
 	}
 
 }
