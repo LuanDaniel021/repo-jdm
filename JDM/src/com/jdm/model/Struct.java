@@ -38,7 +38,7 @@ class Struct {
 
 			if ( !Parent.class.isAssignableFrom( field.getType() ) ) {
 
-				throw new Error( "ERROR: campo '_root_' reservado para tipo Parent'" );
+				throw new IllegalArgumentException("ERROR: O campo '_root_' deve ser do tipo Parent (ou subclasse).");
 
 			}
 
@@ -62,18 +62,19 @@ class Struct {
 
 		if ( field == null ) {
 
-			throw new Error("ERROR: root nao definido");
+			throw new IllegalStateException("ERROR: Nenhum campo do tipo Parent foi definido como root em " + clss.getSimpleName());
 
 		}
 		
 		root = (Parent) load( model, field )._node;
+
 	}
 
 	private Element load( Object father, Field field ) throws Exception {
 
 		Element el = new Element( instance(father, field), field );
 
-		el.current = current.merge(el._type_name, 1, Integer::sum);
+		el.current = current( el._type_name );
 
 		if ( el._ignore ) return el;
 		
@@ -119,8 +120,26 @@ class Struct {
 
 		return el;
 	}
+
+	private int current( String key ) {
+		int count = 0;
+		
+		if ( !current.containsKey( key ) ) {
+			
+			current.put( key, count );
+			
+		} else {
+			
+			count = current.get(key);
+			
+		}
+		
+		count++;
+		
+		return count;
+	}
 	
-	private static Node instance( Object father, Field field ) throws Exception {
+	private Node instance( Object father, Field field ) throws Exception {
 
 		boolean flag = field.isAccessible();
 
@@ -132,33 +151,38 @@ class Struct {
 		
 		if (instance == null) {
 			try {
-				Constructor<?> ctor = clss.getDeclaredConstructor();
+				try {
+					Constructor<?> ctor = clss.getDeclaredConstructor();
 
-	            ctor.setAccessible(true);
+		            ctor.setAccessible(true);
 
-	            instance = ctor.newInstance();
+		            instance = ctor.newInstance();
+				}
+
+				catch (NoSuchMethodException e) {
+
+		        	Constructor<?> ctor = clss.getDeclaredConstructor( clss.getDeclaringClass() );
+
+		        	ctor.setAccessible(true);
+		        	
+	        		instance = ctor.newInstance(father);
+
+	        	}
+				
+				field.set( father, instance );
 			}
 
-			catch (NoSuchMethodException e) {
+			catch (Exception e) {
+				String className = field.getType().getSimpleName();
+				String fieldName = field.getName();
 
-	        	Constructor<?> ctor = clss.getDeclaredConstructor( clss.getDeclaringClass() );
-
-	        	ctor.setAccessible(true);
-	        	
-        		instance = ctor.newInstance(father);
-
-        	}
-
-			if ( instance != null ) {
-
-				field.set( father, instance );	
-
-			} else {
-
-				instance = new Element.Error();
-
+				instance = new Element.Error(
+					String.format(
+						"Error: Class '%s' at field '%s' is not static.%nExternal components must be static to be instantiated.",
+						className, fieldName
+					)
+				);
 			}
-
 		}
 
 		field.setAccessible(flag);
