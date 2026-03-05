@@ -1,3 +1,3 @@
-package com.jdm.engine;
+package com.jdm.model;
 
 public class Header {}
