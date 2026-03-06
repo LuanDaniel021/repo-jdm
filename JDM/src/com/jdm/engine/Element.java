@@ -1,4 +1,4 @@
-package com.jdm.model;
+package com.jdm.engine;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -10,12 +10,10 @@ import com.jdm.meta.Ignore;
 import com.jdm.meta.Layout;
 import com.jdm.meta.Row;
 import com.jdm.meta.Styles;
-import com.jdm.model.engine.StylesManager;
 
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.Label;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
@@ -321,27 +319,11 @@ public class Element {
 
 	@FunctionalInterface
 	interface Configure { void exe(Element el); }
-	
-	public static class Error extends StackPane { // Ou HBox, ou o que você preferir
 
-	    public Error(String msg) {
-	    	setMaxWidth(Double.MAX_VALUE);
-	        setMaxHeight(Double.MAX_VALUE);
-	           
-	        Label l = new Label(msg);
-        		
-    		l.setStyle("-fx-text-fill: red; -fx-font-weight: bold;");
+	static class Error extends StackPane {
 
-            VBox container = new VBox(10, l);
-            container.setAlignment(Pos.CENTER);
-            
-            this.getChildren().add(container);
-            
-            // Um background leve para destacar o erro
-            this.setStyle("-fx-background-color: #ffeeee; -fx-border-color: red; -fx-border-width: 1; -fx-pref-height: 25;");
+	    Error() { setStyle("-fx-background-color: #ffeeee; -fx-border-color: red; -fx-pref-width: 25; -fx-pref-height: 25; "); }
 
-	       
-	    }
 	}
 
 }

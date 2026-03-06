@@ -1,10 +1,9 @@
-package com.jdm.model.engine;
+package com.jdm.engine;
 
 import java.util.HashMap;
 import java.util.Map;
 
 import com.jdm.meta.Layout;
-import com.jdm.model.Element;
 
 import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
