@@ -1,9 +1,10 @@
 package com.jdm.engine;
 
+import static com.jdm.engine.Builder.handle;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.Set;
 
 import com.jdm.model.Document;
 import com.jdm.model.Model;
@@ -12,25 +13,40 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 
 public class Engine {
-
+	
 	public static Model build( Document document, Object instace ) throws Exception {
 		
-		Struct st = Builder.handle( instace, new Struct() );
+		Head hd = handle( instace, new Head() );
+		
+		Struct st = handle( instace, new Struct() );
 		
 		return new Model() {
-			
-			@Override
-			public Parent root() { return st.root; }
-			
-			@Override
-			public String styles() { return st.styles.toString(); }
 
 			@Override
-			public Set<String> registry_id() { return st.ids; }
+			public String styles() {
+				return st.styles.toString();
+			}
 
 			@Override
-			public Set<String> registry_class() { return st.classes; }
-			
+			public Parent root() {
+				return st.root;
+			}
+
+			@Override
+			public String title() {
+				return hd.title;
+			}
+
+			@Override
+			public int height() {
+				return hd.height;
+			}
+
+			@Override
+			public int width() {
+				return hd.width;
+			}
+
 		};
 		
 	}

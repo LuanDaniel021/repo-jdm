@@ -22,8 +22,7 @@ class Struct implements Builder<Struct> {
 
 	protected Parent root;
 
-	
-
+	@Override
 	public Struct build( Object model ) throws Exception {
 
 		Class<?> clss = model.getClass();

@@ -1,7 +1,5 @@
 package com.jdm.model;
 
-import java.util.Set;
-
 import javafx.scene.Parent;
 
 public interface Model {
@@ -10,8 +8,10 @@ public interface Model {
 
 	String styles();
 
-	Set<String> registry_id();
-	
-	Set<String> registry_class();
+	String title();
+
+	int height();
+
+	int width();
 
 }

@@ -320,9 +320,9 @@ public class Element {
 	@FunctionalInterface
 	interface Configure { void exe(Element el); }
 
-	static class Error extends StackPane {
+	public static class Error extends StackPane {
 
-	    Error() { setStyle("-fx-background-color: #ffeeee; -fx-border-color: red; -fx-pref-width: 25; -fx-pref-height: 25; "); }
+		public Error() { setStyle("-fx-background-color: #ffeeee; -fx-border-color: red; -fx-pref-width: 25; -fx-pref-height: 25; "); }
 
 	}
 

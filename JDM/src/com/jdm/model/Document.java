@@ -1,27 +1,36 @@
 package com.jdm.model;
 
-import java.lang.reflect.Constructor;
-import java.util.Set;
+import static com.jdm.engine.Engine.build;
 
-import com.jdm.engine.Engine;
+import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.HashSet;
+import java.util.Set;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
 
 public final class Document {
 
-	private final Set<String> registry_class;
-	
-	private final Set<String> registry_id;
-
 	private final String stylesheet;
-	
-	private final Parent root;
-	
+
+	private final String title;
+
+	private final int height;
+
+	private final int width;
+
+	private Scene scene;
+
 	public Document( Object instance ) throws Exception { this( instance, null ); }
-	
+
 	public Document( Class<?> _class ) throws Exception { this(   null, _class ); }
-	
+
 	private Document( Object instance, Class<?> c ) throws Exception {
 
 		if ( c != null ) {
@@ -37,69 +46,178 @@ public final class Document {
 
 	        ctor.setAccessible(flag);
 		}
-		
-		if ( instance == null ) throw new Error( " Document - instace == null && class == null " ); 
+
+		if ( instance == null ) throw new IllegalArgumentException( "JDM - Error: instace == null && class == null" ); 
 
 		else {
 
-			Model model = Engine.build( this, instance );
-
-			registry_class = model.registry_class();
-			
-			registry_id =  model.registry_id();
+			Model model = build( this, instance );
 
 			stylesheet =  model.styles();
 
-			root = model.root();
+			title = model.title();
 
+			height = model.height();
+
+			width = model.width();
+
+			scene = new Scene(model.root(), width, height);
+			
 		}
 
 	}
 
-	public Node getNodeById(String id) {
-		Node node = null;
+	public Node getNodeById(String id) { return getNodeById( scene.getRoot(), id ); }
 
-		if ( registry_id.contains(id) ) {
+	public Node getNodeById(Node node, String id) {
 
-			node = root.lookup( String.format("#%s", id) );	
+		if ( node.getId().equals( id ) ) {
+
+			return node;
+
+		}
+
+		if ( node instanceof Parent ) {
+
+			for ( Node _node : ((Parent) node).getChildrenUnmodifiable() ) {
+
+				Node child = getNodeById(_node, id);
+
+				if ( child != null ) {
+
+					return child;
+
+				}
+
+			}
 
 		}
 
-		return node;
-	}
-
-	public Parent getRoot() { return root; }
-
-	public String getStylesheet() {
-
-		return stylesheet;
+		return null;
 
 	}
 
-	public Node getNodeClass(String clss) {
-		Node node = null;
-		
-		if ( registry_class.contains(clss) ) {
+	public Node getNodeClass(String clss) { return getNodeClass( scene.getRoot(), clss ); }
 
-			node = root.lookup( String.format(".%s", clss) );	
+	public Node getNodeClass(Node node, String clss) {
+
+		if ( node.getStyleClass().contains( clss ) ) {
+
+			return node;
 
 		}
-		
-		return node;
+
+		if ( node instanceof Parent ) {
+
+			for ( Node _node : ((Parent) node).getChildrenUnmodifiable() ) {
+
+				Node child = getNodeClass(_node, clss);
+
+				if ( child != null ) {
+
+					return child;
+
+				}
+
+			}
+
+		}
+
+		return null;
+
 	}
 
 	public Set<Node> getNodeClassAll(String clss) {
-		Set<Node> nodes = null;;
-		
-		if ( registry_class.contains(clss) ) {
+		return getNodeClassAll( scene.getRoot(), clss );
+	}
 
-			nodes = root.lookupAll( String.format(".%s", clss) );	
+	public Set<Node> getNodeClassAll(Node node, String clss) {
+		return getNodeClassAll( new HashSet<Node>(), node, clss );
+	}
+
+	private Set<Node> getNodeClassAll(Set<Node> set, Node node, String clss) {
+
+		if ( node.getStyleClass().contains( clss ) ) {
+
+			set.add(node);
 
 		}
-		
-		return nodes;
+
+		if ( node instanceof Parent ) {
+
+			for ( Node _node : ((Parent) node).getChildrenUnmodifiable() ) {
+
+				getNodeClassAll(set, _node, clss);
+
+			}
+
+		}
+
+		return set;
+
 	}
-	
-	
+
+	public Node lookup(String selector) {
+		return lookup( scene.getRoot(), selector );
+	}
+
+	public Node lookup(Node node, String selector) {
+		return node.lookup( selector );
+	}
+
+	public Set<Node> lookupAll(String selector) {
+		return lookupAll( scene.getRoot(), selector );
+	}
+
+	public Set<Node> lookupAll(Node node, String selector) {
+		return node.lookupAll( selector );
+	}
+
+	public void configure(Stage stage) throws IOException {
+		stage.setTitle(title);
+		stage.setScene(
+			configure()
+		);
+	}
+
+	private Scene configure() throws IOException {
+
+		String css = getStylesheet();
+
+		Path tmp = Files.createTempFile("jdm-css", ".css");
+
+		tmp.toFile().deleteOnExit();
+
+    	Files.write(tmp, css.getBytes(StandardCharsets.UTF_8));
+
+	    scene.getStylesheets().add( tmp.toUri().toString() );
+
+		return scene;
+
+	}
+
+	public String getStylesheet() {
+		return stylesheet;
+	}
+
+	public Scene getScene() {
+		return scene;
+	}
+
+	public Parent getRoot() {
+		return scene.getRoot();
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public int getHeight() {
+		return height;
+	}
+
+	public int getWidth() {
+		return width;
+	}
 
 }
