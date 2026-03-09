@@ -1,6 +1,5 @@
 package com.jdm.model;
 
-import static com.jdm.engine.Engine.analyze;
 import static com.jdm.engine.Engine.build;
 
 import java.io.IOException;
@@ -10,8 +9,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
-
-import com.jdm.engine.Build;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -55,15 +52,6 @@ public final class Document {
 		if ( instance == null ) throw new IllegalArgumentException( "JDM - Error: instace == null && class == null" ); 
 
 		else {
-			
-			Build<?> build = Models.get(c);
-			
-			if ( build == null) {
-			
-				build = analyze( instance );
-				
-				Models.put( c, build );
-			}
 			
 			Model m = build( this, instance );
 

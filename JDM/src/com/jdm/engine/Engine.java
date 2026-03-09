@@ -51,16 +51,6 @@ public class Engine {
 
 	}
 	
-	public static Build<? extends Parent> analyze( Object instance ) throws Exception {
-
-		//Struct sr = handle( instance, new Struct() ); 
-
-		return null;
-	
-	}
-	
-	public static Parent save( Build<?> b ) { return b.root(); }
-	
 	static Node instance( Object father, Field field ) throws Exception {
 
 		boolean flag = field.isAccessible();
