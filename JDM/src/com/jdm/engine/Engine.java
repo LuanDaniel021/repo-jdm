@@ -1,177 +1,117 @@
 package com.jdm.engine;
 
+import static com.jdm.engine.Builder.handle;
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 
+import com.jdm.model.Document;
+import com.jdm.model.Model;
+
 import javafx.scene.Node;
 import javafx.scene.Parent;
-import javafx.scene.layout.Pane;
 
-class Engine {
-	
-	public static Document build( Document document ) {
-		try {
+public class Engine {
 
-			Object model = document._model;
-
-			Class<?> clss = model.getClass();
-			
-			Field field = null;
-
-			Object root  = null;
-
-			boolean flag = false;
-
-			try {
-
-				field = clss.getDeclaredField("_root_");
-
-			} catch (Exception e) {}
-
-			if ( field != null ) {
-
-				flag = field.isAccessible();
-
-				field.setAccessible(true);
-
-				root = field.get( model );
-
-				field.setAccessible(flag);
-
-				if (!(root instanceof Parent)) {
-
-					throw new Error( "ERROR: campo '_root_' reservado para tipo Parent'" );
-
-				}
-
-			} else {
-
-				Field[] fields = clss.getDeclaredFields();
-
-				for ( Field _field : fields) {
-
-					flag = _field.isAccessible();
-
-					_field.setAccessible(true);
-
-					root = _field.get( model );
-
-					_field.setAccessible(flag);
-
-					if (root instanceof Parent) {
-
-						field = _field;
-
-						break;
-
-					}
-
-				}
-
-			}
-
-			if (field == null) {
-
-				throw new Error("ERROR: root nao definido");
-
-			}
-
-			if (root == null) {
-
-				System.err.println("WARNING: root é nulo");
-
-				root = instace(field, model);
-
-			}
-
-			document.root = (Parent) load(document, field, null, (Node) root);
-
-		} catch (Exception e) { e.printStackTrace(); }
+	public static Model build( Document document, Object instace ) throws Exception {
 		
-		return document;
+		Head hd = handle( instace, new Head() );
+		
+		Struct st = handle( instace, new Struct() );
+		
+		return new Model() {
 
-	}
-	
-	private static Node load( Document document, Field field, Node father, Node node ) throws Exception {
-
-		if (node == null) node = instace( field, father );
-
-		Manager.configure(document, field, father, node);
-
-		if (node instanceof Pane) {
-
-			boolean flag = false;
-
-			Field[] fields = node.getClass().getDeclaredFields();
-			
-			for ( Field _field : fields ) {
-
-				if (shouldSkip(_field)) continue;
-
-				else {
-
-					flag = _field.isAccessible();
-
-					_field.setAccessible(true);
-
-					load( document, _field, node, (Node) _field.get(node) );
-
-					_field.setAccessible(flag);
-
-				}
-
+			@Override
+			public String styles() {
+				return st.styles.toString();
 			}
 
-		}
+			@Override
+			public Parent root() {
+				return st.root;
+			}
 
-		return node;
+			@Override
+			public String title() {
+				return hd.title;
+			}
+
+			@Override
+			public int height() {
+				return hd.height;
+			}
+
+			@Override
+			public int width() {
+				return hd.width;
+			}
+
+		};
+
 	}
 	
-	public static Node instace( Field field, Object father ) throws Exception {
+	static Node instance( Object father, Field field ) throws Exception {
 
 		boolean flag = field.isAccessible();
 
 		field.setAccessible(true);
 
+		Object instance = field.get( father );
+
 		Class<?> clss = field.getType();
+		
+		if (instance == null) {
+			try {
+				try {
+					Constructor<?> ctor = clss.getDeclaredConstructor();
 
-        Class<?> externalClass = clss.getDeclaringClass();
+		            ctor.setAccessible(true);
 
-        Object instace = null;
+		            instance = ctor.newInstance();
+				}
 
-        if (externalClass != null && !Modifier.isStatic(clss.getModifiers())) {
+				catch (NoSuchMethodException e) {
 
-        	Constructor<?> ctor = clss.getDeclaredConstructor(externalClass);
+		        	Constructor<?> ctor = clss.getDeclaredConstructor( clss.getDeclaringClass() );
 
-        	ctor.setAccessible(true);
+		        	ctor.setAccessible(true);
+		        	
+	        		instance = ctor.newInstance(father);
 
-        	instace = ctor.newInstance(father);
+	        	}
+				
+				field.set( father, instance );
+			}
 
-        } else {
+			catch (Exception e) {
+				String className = field.getType().getSimpleName();
+				String fieldName = field.getName();
 
-        	Constructor<?> ctor = clss.getDeclaredConstructor();
+				System.err.println(
+					String.format(
+						"Error: Class '%s' at field '%s' is not static. External components must be static to be instantiated.",
+						className, fieldName
+					)
+				);
+				
+				instance = new Element.Error();
+			}
+		}
 
-            ctor.setAccessible(true);
+		field.setAccessible(flag);
 
-            instace = ctor.newInstance();
-
-        }
-
-        field.set( father, instace );
-
-        field.setAccessible(flag);
-
-        return (Node) instace;
+        return (Node) instance;
 
 	}
 	
-	public static boolean shouldSkip(Field field) {
+	static boolean shouldSkip(Field field) {
+		
 		Class<?> clss = field.getType();
-        return field.isSynthetic() || Modifier.isStatic(field.getModifiers()) ||
-        		clss.isPrimitive() || clss.isInterface() || clss.isEnum() ||
-        		Modifier.isAbstract(clss.getModifiers());
+        
+		return !Node.class.isAssignableFrom(clss) ||
+        	field.isSynthetic() || Modifier.isStatic(field.getModifiers()) ||
+        	clss.isPrimitive()  || clss.isInterface() || clss.isEnum() ||
+        	Modifier.isAbstract(clss.getModifiers());
     }
-	
-
 }

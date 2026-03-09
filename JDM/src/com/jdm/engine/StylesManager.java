@@ -4,13 +4,13 @@ import java.lang.reflect.Method;
 import java.util.HashSet;
 import java.util.Set;
 
-import com.jdm.meta.Style;
+import com.jdm.meta.Styles;
 
 import javafx.scene.Node;
 
 public class StylesManager {
 	
-	private static final Method[] mStyle = Style.class.getDeclaredMethods();
+	private static final Method[] mStyle = Styles.class.getDeclaredMethods();
 	
 	private static final Set<String> ignore = new HashSet<String>();
 	
@@ -24,7 +24,7 @@ public class StylesManager {
 		
 	}
 	
-	public static StringBuilder load(Node node, Style[] styles) {
+	public static StringBuilder load(Node node, Styles[] styles) {
 
 		StringBuilder css = new StringBuilder();
 		
@@ -32,7 +32,7 @@ public class StylesManager {
 			
 			String id = String.format("#%s", node.getId());
 			
-			for (Style s : styles) {
+			for (Styles s : styles) {
 		
 				css.append(String.format("%s%s {", id, select(s)));
 				
@@ -70,7 +70,7 @@ public class StylesManager {
 		
 	}
 
-	private static String select(Style s) {
+	private static String select(Styles s) {
     	
     	String from = s.from().replace(" ", "");
     	

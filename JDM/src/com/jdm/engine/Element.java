@@ -1,29 +1,25 @@
 package com.jdm.engine;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
+import com.jdm.meta.Class;
 import com.jdm.meta.Column;
 import com.jdm.meta.ID;
+import com.jdm.meta.Ignore;
 import com.jdm.meta.Layout;
 import com.jdm.meta.Row;
-import com.jdm.meta.Style;
+import com.jdm.meta.Styles;
 
 import javafx.collections.ObservableList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.SplitPane;
-import javafx.scene.control.Tab;
-import javafx.scene.control.TabPane;
-import javafx.scene.control.TitledPane;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.AnchorPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Pane;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.RowConstraints;
@@ -31,134 +27,225 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 
 public class Element {
+
+	public String stylesheet;
+
+	public final boolean _ignore;
+
+	public final boolean _ok;
 	
-	static boolean _id(Node node, String _name, String _class, int current, ID i) {
+	public final ID _id;
 
-		boolean flag = false;
-		
-    	if (i != null) {
+	public final Class _class;
 
-    		String value = i.value();
-    		
-    		if ( value.isEmpty() ) {
+	public final Layout _layout;
 
-    			value = String.format("%s-%d", _class, current);
-    			
-    			flag = true;
+	public final Styles[] _styles;
 
-    		}
-    		
-    		node.setId(value);
-    		
-    	} else {
-    		
-    		node.setId(_name);
+	public final Column[] _columns;
 
-    	}
-    	
-    	return flag;
+	public final Row[] _rows;
+
+	public final com.jdm.meta.Image _image;
+	
+	public final java.lang.Class<?> _type;
+
+	public final String _type_name;
+
+	public final String _genericID;
+
+	public final String _name;
+
+	public final Node _node;
+
+	public Element( Node node, Field field, String genericID ) {
+
+		_ignore = field.isAnnotationPresent(Ignore.class);
+
+		_ok = !(node instanceof Error);
+
+		_id = field.getDeclaredAnnotation(ID.class);
+
+		_class = field.getDeclaredAnnotation(Class.class);
+
+    	_layout = field.getDeclaredAnnotation(Layout.class);
+
+        _styles = field.getDeclaredAnnotationsByType(Styles.class);
+
+		_columns = field.getAnnotationsByType(Column.class);
+
+		_rows = field.getAnnotationsByType(Row.class);
+
+		_image = field.getAnnotation(com.jdm.meta.Image.class);
+
+		_type = field.getType();
+
+		_type_name = _type.getSimpleName();
+
+		_genericID = genericID;
+
+		_name = field.getName();
+
+		_node = node;
 
 	}
 
-	static void _class(Node node, String type, com.jdm.meta.Class c) {
+	Element pack() {
+
+		configure( this, Element::ID );
+
+		configure( this, Element::CLASS );
+
+		configure( this, Element::LAYOUT );
+
+		configure( this, Element::STYLES );
+
+		configure( this, Element::COLUMNS );
+
+		configure( this, Element::ROWS );
+
+		configure( this, Element::IMAGE );
+
+		return this;
+
+	}
+	
+	Element err() {
+
+		configure( this, Element::ID );
+
+		configure( this, Element::LAYOUT );
+
+		return this;
+
+	}
+	
+	private static void configure( Element el, Configure config ) { config.exe(el); }
+	
+	private static void ID(Element el) {
+		String value = "";
 		
-    	node.getStyleClass().add( type );
+    	if (el._id != null) {
 
-    	if (c != null) {
-
-    		node.getStyleClass().addAll( c.value() );
+    		value = el._id.value();
 
     	}
 
-	}
+    	if ( value.isEmpty() ) {
 
-	static void _layout(Node node, Layout l) {
-
-    	if (l.vgrow() != Priority.NEVER) VBox.setVgrow(node, l.vgrow());
-
-    	if (l.hgrow() != Priority.NEVER) HBox.setHgrow(node, l.hgrow());
-
-    	if (!Double.isNaN(l.anchor_top()))    AnchorPane.setTopAnchor(node, l.anchor_top());
-
-    	if (!Double.isNaN(l.anchor_left()))   AnchorPane.setLeftAnchor(node, l.anchor_left());
-
-	    if (!Double.isNaN(l.anchor_right()))  AnchorPane.setRightAnchor(node, l.anchor_right());
-
-	    if (!Double.isNaN(l.anchor_bottom())) AnchorPane.setBottomAnchor(node, l.anchor_bottom());
-
-    	try {
-
-    		Method setAlign = node.getClass().getMethod("setAlignment", Pos.class);
-
-	        setAlign.invoke(node, l.position());
-
-	    }
-
-    	catch (Exception ignored) { StackPane.setAlignment(node, l.position()); }
-
-		if (node instanceof Region) { Region r = (Region) node;
-
-			if (l.pref_width() >= 0) r.setPrefWidth(l.pref_width());
-
-			if (l.pref_height()>= 0) r.setPrefHeight(l.pref_height());
-
-			if (l.max_width()  >= 0) r.setMaxWidth(l.max_width());
-
-			if (l.max_height() >= 0) r.setMaxHeight(l.max_height());
-
-			if (l.min_width()  >= 0) r.setMinWidth(l.min_width());
-
-			if (l.min_height() >= 0) r.setMinHeight(l.min_height());
-
-		    GridPane.setHalignment(node, l.halignment());
-
-		    GridPane.setValignment(node, l.valignment());
+    		value = el._genericID;
 
 		}
 
+    	el._node.setId(value);
 	}
+	
+	private static void CLASS(Element el) {
+		Node node = el._node;
+		
+		String type = el._type_name;
+		
+		node.getStyleClass().add( type );
 
-	static StringBuilder _styles(Node node, Style[] s) { return StylesManager.load(node, s); }
+    	if (el._class != null) {
 
-	static void _columns(Node node, Column[] c) {
+    		node.getStyleClass().addAll( el._class.value() );
 
-		if (node instanceof GridPane) { GridPane grid = (GridPane) node;
+    	}
+	}
+	
+	private static void LAYOUT(Element el) {
+		if (el._layout != null) {
+			Layout l = el._layout;
+
+			Node node = el._node;
+			
+			if (l.vgrow() != Priority.NEVER) VBox.setVgrow(node, l.vgrow());
+
+	    	if (l.hgrow() != Priority.NEVER) HBox.setHgrow(node, l.hgrow());
+
+	    	if (!Double.isNaN(l.anchor_top()))    AnchorPane.setTopAnchor(node, l.anchor_top());
+
+	    	if (!Double.isNaN(l.anchor_left()))   AnchorPane.setLeftAnchor(node, l.anchor_left());
+
+		    if (!Double.isNaN(l.anchor_right()))  AnchorPane.setRightAnchor(node, l.anchor_right());
+
+		    if (!Double.isNaN(l.anchor_bottom())) AnchorPane.setBottomAnchor(node, l.anchor_bottom());
+
+	    	try {
+
+	    		Method setAlign = node.getClass().getMethod("setAlignment", Pos.class);
+
+		        setAlign.invoke(node, l.position());
+
+		    }
+
+	    	catch (Exception ignored) { StackPane.setAlignment(node, l.position()); }
+
+			if (node instanceof Region) { Region r = (Region) el._node;
+		
+				if (l.pref_width() >= 0) r.setPrefWidth(l.pref_width());
+		
+				if (l.pref_height()>= 0) r.setPrefHeight(l.pref_height());
+		
+				if (l.max_width()  >= 0) r.setMaxWidth(l.max_width());
+		
+				if (l.max_height() >= 0) r.setMaxHeight(l.max_height());
+		
+				if (l.min_width()  >= 0) r.setMinWidth(l.min_width());
+		
+				if (l.min_height() >= 0) r.setMinHeight(l.min_height());
+		
+			    GridPane.setHalignment(node, l.halignment());
+		
+			    GridPane.setValignment(node, l.valignment());
+		    }
+		}
+	}
+	
+	private static void STYLES(Element el) { 
+	
+		el.stylesheet = StylesManager.load(el._node, el._styles).toString();
+		
+	}
+	
+	private static void COLUMNS(Element el) {
+		if ( el._rows.length > 0 && el._node instanceof GridPane) {
+			GridPane grid = (GridPane) el._node;
 
 			ObservableList<ColumnConstraints> oc = grid.getColumnConstraints(); 
-
-			for (Column _c : c) {
-
+	
+			for (Column _c : el._columns) {
+	
 				ColumnConstraints cc = new ColumnConstraints();
-
+	
 				if (!Double.isNaN(_c.percentWidth())) cc.setPercentWidth(_c.percentWidth());
-
+	
 				if (!Double.isNaN(_c.prefWidth())) cc.setPrefWidth(_c.prefWidth());
-
+	
 				if (!Double.isNaN(_c.maxWidth())) cc.setMaxWidth(_c.maxWidth());
-
+	
 				if (!Double.isNaN(_c.minWidth())) cc.setMinWidth(_c.minWidth());
-
+	
 				cc.setFillWidth(_c.fillWidth());
-
+	
 				cc.setHalignment(_c.halign());
-
+	
 				cc.setHgrow(_c.hgrow());
-
+	
 				oc.add(cc);
 
 			}
-
 		}
-
 	}
-
-	static void _rows(Node node, Row[] r) {
-
-		if (node instanceof GridPane) { GridPane grid = (GridPane) node;
+	
+	private static void ROWS(Element el) {
+		if ( el._rows.length > 0 && el._node instanceof GridPane) {
+			GridPane grid = (GridPane) el._node;
 
 			ObservableList<RowConstraints> or = grid.getRowConstraints();
 
-			for (Row _r : r) {
+			for (Row _r : el._rows) {
 
 				RowConstraints rc = new RowConstraints();
 
@@ -178,190 +265,41 @@ public class Element {
 
 				or.add(rc);
 
-			}
-
+			}	
 		}
-
-	}
-
-	static void _image(Node node, com.jdm.meta.Image i) {
-
-		if (node instanceof ImageView) {
-
-            if (i != null) {
-
-    	        ImageView img = (ImageView) node;
-
-    	        if (!i.url().isEmpty()) img.setImage(new Image(i.url()));
-
-    	        if (i.width() != -1) img.setFitWidth(i.width());
-
-    	        if (i.height() != -1) img.setFitHeight(i.height());
-
-    	        img.setPreserveRatio(i.preserve_ratio());
-
-            }
-
-    	}
-
 	}
 	
-	static boolean _linker(Node father, Node node, Layout l) {
-		
-		//1. O Rei dos Layouts: GridPane
-	    if (father instanceof GridPane) {
+	private static void IMAGE(Element el) {
+		if (el._image != null && el._node instanceof ImageView) {
+			
+			com.jdm.meta.Image i = el._image;
+			
+			Node node = el._node;
+	
+	        ImageView img = (ImageView) node;
+	
+	        if (!i.url().isEmpty()) img.setImage(new Image(i.url()));
+	
+	        if (i.width() != -1) img.setFitWidth(i.width());
+	
+	        if (i.height() != -1) img.setFitHeight(i.height());
+	
+	        img.setPreserveRatio(i.preserve_ratio());
 
-	    	GridPane grid = (GridPane) father;
+    	}
+	}
 
-	        int col = 0;
+	@FunctionalInterface
+	interface Configure { void exe(Element el); }
 
-	        int row = 0;
+	public static class Error extends StackPane {
 
-	        if (l != null) {
-
-	        	col = l.column();
-
-		        row = l.row();
-
-	        }
-
-	        grid.add(node, col, row);
-
-	        return true;
-
-	    }
-
-	    // 2. Containers de Lista de Filhos (HBox, VBox, AnchorPane, Group, StackPane)
-	    if (father instanceof Pane) {
-
-	    	Pane pane = (Pane) father;
-
-	        if (!pane.getChildren().contains(node)) {
-
-	        	pane.getChildren().add(node);
-
-	        }
-
-	        return true;
-
-	    }
-
-	    // 3. ScrollPane: Só aceita UM conteúdo (o Viewport)
-	    if (father instanceof ScrollPane) {
-
-	    	ScrollPane scrollpane = (ScrollPane) father;
-
-	    	scrollpane.setContent(node);
-
-	        return true;
-
-	    }
-
-	    // 4. SplitPane: Adiciona aos itens divisíveis
-	    if (father instanceof SplitPane) {
-
-	    	SplitPane split = (SplitPane) father;
-
-	        if (!split.getItems().contains(node)) {
-
-	        	split.getItems().add(node);
-
-	        }
-
-	        return true;
-
-	    }
-
-	    // 5. TabPane: Aqui o bicho pega, porque o Node precisa estar dentro de uma Tab
-	    if (father instanceof TabPane) {
-
-	    	TabPane tabPane = (TabPane) father;
-
-	        Tab tab = new Tab(node.getId(), node);
-
-	        tabPane.getTabs().add(tab);
-
-	        return true;
-
-	    }
-
-	    if (father instanceof BorderPane) {
-
-	    	BorderPane border = (BorderPane) father;
-
-	        String region = "center";
-	        
-	        if ( l != null) {
-	        
-	        	region = l.region();
-	        	
-	        }
-
-	        switch (region) {
-
-	        	case "top":    border.setTop(node);    break;
-
-	            case "bottom": border.setBottom(node); break;
-
-	            case "left":   border.setLeft(node);   break;
-
-	            case "right":  border.setRight(node);  break;
-
-	            default:       border.setCenter(node); break; // Default é sempre o centro
-
-	        }
-
-	        return true;
-
-	    }
-
-	    // 6. TitledPane: O conteúdo colapsável
-	    if (father instanceof TitledPane) {
-
-	    	TitledPane title = (TitledPane) father;
-
-	        title.setContent(node);
-
-	        return true;
-
-	    }
-
-	    return false;
+		public Error() { setStyle("-fx-background-color: #ffeeee; -fx-border-color: red; -fx-pref-width: 25; -fx-pref-height: 25; "); }
 
 	}
 
-	public void pack(Document document) throws Exception {
-		
-//		String type = field.getType().getSimpleName();
-//		
-//		current_type = 0;
-//
-//		if (!document.current_types.containsKey(type)) {
-//
-//			document.current_types.put(type, current_type);
-//
-//		} else {
-//
-//			current_type = document.current_types.get(type);
-//
-//		}
-//
-//		current_type++;
-//
-//		document.current_types.put(type, current_type);
-//		
-//		if ( Manager.configure( document, this ) ) {
-//			
-//			if ( !ignore ) {
-//
-//				document.elements.put(node.getId(), this);
-//
-//			}
-//
-//    		document.stylesheet.append( styles.toString() );
-//
-//    	}
-
+	public boolean isGenericID() {
+		return _node.getId().equals(_genericID);
 	}
 
 }
