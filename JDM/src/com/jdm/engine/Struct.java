@@ -11,63 +11,33 @@ import com.jdm.engine.Link.Linker;
 import javafx.scene.Parent;
 
 class Struct implements Builder<Struct> {
-
-	protected Set<String> ids  = new HashSet<String>();
 	
-	protected Set<String> classes  = new HashSet<String>();
+	public Map<String, Integer> current;
+
+	public StringBuilder styles;
+
+	public Parent root;
 	
-	protected Map<String, Integer> current = new HashMap<String, Integer>();
-
-	protected StringBuilder styles = new StringBuilder();
-
-	protected Parent root;
-
+	{
+		current  = new HashMap<>();
+		styles   = new StringBuilder();
+		root = null;
+	}
+	
 	@Override
 	public Struct build( Object model ) throws Exception {
 
 		Class<?> clss = model.getClass();
 
-		Field field = null;
+		Root roots = new Root(clss.getDeclaredFields());
 
-		try {
-
-			field = clss.getDeclaredField("_root_");
-
-		} catch (Exception e) { /* ignora null */ }
-
-		if ( field != null ) {
-
-			if ( !Parent.class.isAssignableFrom( field.getType() ) ) {
-
-				throw new IllegalArgumentException("ERROR: O campo '_root_' deve ser do tipo Parent (ou subclasse).");
-
-			}
-
-		} else {
-
-			Field[] fields = clss.getDeclaredFields();
-
-			for ( Field _field : fields) {
-
-				if ( Parent.class.isAssignableFrom( _field.getType() ) ) {
-
-					field = _field;
-
-					break;
-
-				}
-
-			}
-
-		}
-
-		if ( field == null ) {
+		if ( roots.posibles.isEmpty() ) {
 
 			throw new IllegalStateException("ERROR: Nenhum campo do tipo Parent foi definido como root em " + clss.getSimpleName());
 
 		}
 
-		root = (Parent) load( model, field )._node;
+		root = (Parent) load( model, clss.getDeclaredField( roots.now ) )._node;
 
 		return this;
 
@@ -75,47 +45,57 @@ class Struct implements Builder<Struct> {
 
 	private Element load( Object father, Field field ) throws Exception {
 
-		Element el = new Element( Engine.instance(father, field), field );
+		Element element = new Element( Engine.instance(father, field), field, genericID( field.getType() ) );
 
-		el.current = current( el._type_name );
+		if ( element._ignore ) {
 
-		if ( el._ignore ) return el;
-		
-		if ( !el._ok ) return el.err();
-		
-		el.pack();
-		
-		ids.add(el._node.getId());
-		
-		classes.addAll( el._node.getStyleClass() );
-		
-		if ( el.isGenericID ) {
-
-			current.put( el._type_name, el.current );
+			return element;
 
 		}
 
-		styles.append( el.stylesheet );
+		if ( element._ok ) {
 
-		if (el.genered) return el;
+			element.pack();
+
+		} else {
+
+			return element.err();
+
+		}
+
+		if ( element.isGenericID() ) {
+
+			current.merge( element._type_name, 1, Integer::sum );
+
+		}
+
+		styles.append( element.stylesheet );
+
+		boolean anonymus = element._node.getClass().isAnonymousClass();
 		
-		Linker path = Link.get( el._node );
+		boolean instaced = !anonymus && element._type.isMemberClass();
 		
-		if ( path != null ) {
+		if ( anonymus || instaced ) {
 
-			Field[] fields = el._node.getClass().getDeclaredFields();
+			Linker path = Link.get( element._node );
+			
+			if ( path != null ) {
 
-			for ( Field _field : fields ) {
+				Field[] fields = element._node.getClass().getDeclaredFields();
 
-				if ( Engine.shouldSkip(_field) ) continue;
+				for ( Field _field : fields ) {
 
-				else {
+					if ( Engine.shouldSkip(_field) ) continue;
 
-					Element child = load( el._node, _field );
+					else {
+
+						Element child = load( element._node, _field );
+								
+						if (!child._ignore) {
 							
-					if (!child._ignore) {
-						
-						path.link( el._node, child);
+							path.link( element._node, child);
+
+						}
 
 					}
 
@@ -125,10 +105,13 @@ class Struct implements Builder<Struct> {
 
 		}
 
-		return el;
+		return element;
 	}
 
-	private int current( String key ) {
+	private String genericID(Class<?> type) {
+
+		String key = type.getSimpleName();
+		
 		int count = 0;
 
 		if ( !current.containsKey( key ) ) {
@@ -143,7 +126,76 @@ class Struct implements Builder<Struct> {
 		
 		count++;
 		
-		return count;
+		return String.format("%s-%d", key, count);
+	}
+	
+	class Root {
+		
+		public Map<String, Boolean> persists;
+
+		public Set<String> posibles;
+
+		public String _default;
+
+		public String now;
+		
+		{
+			persists = new HashMap<>();
+			posibles = new HashSet<>();
+			_default = "_root_";
+			now = "";
+		}
+		
+		public Root(Field[] fields) {
+
+			Class<Parent> p = Parent.class;
+
+			String field = "";
+
+			for ( Field f : fields ) {
+
+				if ( p.isAssignableFrom( f.getType() ) ) { String name = f.getName();
+
+					if (field.isEmpty()) field = name;
+
+					posibles.add( name );
+
+					persists.put(name, false);
+
+				}
+
+			}
+			
+			if ( !posibles.contains(_default) ) {
+
+				_default = field;
+
+			}
+			
+			now = _default;
+
+		}
+	
+	}
+	
+	class Data {
+		
+		String _id;
+
+		String[] _class;
+
+		Layout _layout;
+
+		Contrains _contrains;
+		
+	}
+	
+	class Layout {
+		
+	}
+	
+	class Contrains {
+		
 	}
 
 }

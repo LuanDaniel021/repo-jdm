@@ -52,21 +52,13 @@ public class Element {
 
 	public final String _type_name;
 
+	public final String _genericID;
+
 	public final String _name;
 
 	public final Node _node;
-	
-	public int current;
-	
-	public boolean isGenericID;
-	
-	public boolean anonymus;
-	
-	public boolean instaced;
-	
-	public boolean genered;
 
-	public Element( Node node, Field field ) {
+	public Element( Node node, Field field, String genericID ) {
 
 		_ignore = field.isAnnotationPresent(Ignore.class);
 
@@ -90,23 +82,15 @@ public class Element {
 
 		_type_name = _type.getSimpleName();
 
+		_genericID = genericID;
+
 		_name = field.getName();
 
 		_node = node;
 
-		current = -1;
-
-		isGenericID = false;
-		
-		anonymus = node.getClass().isAnonymousClass();
-		
-		instaced = !anonymus && _type.isMemberClass();
-		
-		genered = !anonymus && !instaced;
-
 	}
 
-	public Element pack() {
+	Element pack() {
 
 		configure( this, Element::ID );
 
@@ -128,38 +112,28 @@ public class Element {
 	
 	Element err() {
 
-		configure( this, Element::ERR );
-		
+		configure( this, Element::ID );
+
+		configure( this, Element::LAYOUT );
+
 		return this;
 
 	}
 	
 	private static void configure( Element el, Configure config ) { config.exe(el); }
 	
-	private static void ERR(Element el) {
-		
-		configure( el, Element::ID );
-
-		configure( el, Element::LAYOUT );
-
-	}
-	
 	private static void ID(Element el) {
 		String value = "";
-
+		
     	if (el._id != null) {
 
     		value = el._id.value();
-    		
-    		el.isGenericID = false;
 
     	}
 
     	if ( value.isEmpty() ) {
 
-    		value = String.format("%s-%d", el._type_name, el.current);
-
-    		el.isGenericID = true;
+    		value = el._genericID;
 
 		}
 
@@ -167,17 +141,15 @@ public class Element {
 	}
 	
 	private static void CLASS(Element el) {
-		Class c = el._class;
-		
 		Node node = el._node;
 		
 		String type = el._type_name;
 		
 		node.getStyleClass().add( type );
 
-    	if (c != null) {
+    	if (el._class != null) {
 
-    		node.getStyleClass().addAll( c.value() );
+    		node.getStyleClass().addAll( el._class.value() );
 
     	}
 	}
@@ -324,6 +296,10 @@ public class Element {
 
 		public Error() { setStyle("-fx-background-color: #ffeeee; -fx-border-color: red; -fx-pref-width: 25; -fx-pref-height: 25; "); }
 
+	}
+
+	public boolean isGenericID() {
+		return _node.getId().equals(_genericID);
 	}
 
 }

@@ -1,5 +1,6 @@
 package com.jdm.model;
 
+import static com.jdm.engine.Engine.analyze;
 import static com.jdm.engine.Engine.build;
 
 import java.io.IOException;
@@ -10,6 +11,8 @@ import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
+import com.jdm.engine.Build;
+
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -19,6 +22,8 @@ public final class Document {
 
 	private final String stylesheet;
 
+	//private final Object model;
+	
 	private final String title;
 
 	private final int height;
@@ -50,18 +55,31 @@ public final class Document {
 		if ( instance == null ) throw new IllegalArgumentException( "JDM - Error: instace == null && class == null" ); 
 
 		else {
+			
+			Build<?> build = Models.get(c);
+			
+			if ( build == null) {
+			
+				build = analyze( instance );
+				
+				Models.put( c, build );
+			}
+			
+			Model m = build( this, instance );
 
-			Model model = build( this, instance );
+			//model = instance;
+			
+			stylesheet =  m.styles();
 
-			stylesheet =  model.styles();
+			title = m.title();
 
-			title = model.title();
+			height = m.height();
 
-			height = model.height();
+			width = m.width();
 
-			width = model.width();
-
-			scene = new Scene(model.root(), width, height);
+			//scene = new Scene(build.root(), width, height);
+			
+			scene = new Scene(m.root(), width, height);
 			
 		}
 

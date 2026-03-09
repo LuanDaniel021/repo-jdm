@@ -13,7 +13,7 @@ import javafx.scene.Node;
 import javafx.scene.Parent;
 
 public class Engine {
-	
+
 	public static Model build( Document document, Object instace ) throws Exception {
 		
 		Head hd = handle( instace, new Head() );
@@ -48,8 +48,18 @@ public class Engine {
 			}
 
 		};
-		
+
 	}
+	
+	public static Build<? extends Parent> analyze( Object instance ) throws Exception {
+
+		//Struct sr = handle( instance, new Struct() ); 
+
+		return null;
+	
+	}
+	
+	public static Parent save( Build<?> b ) { return b.root(); }
 	
 	static Node instance( Object father, Field field ) throws Exception {
 
