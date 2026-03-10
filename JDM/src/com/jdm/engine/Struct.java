@@ -40,6 +40,13 @@ class Struct implements Builder<Struct> {
 		return this;
 
 	}
+	
+	public Struct build( String name, Object model ) throws Exception {
+		
+		root = (Parent) load( model, model.getClass().getDeclaredField( name ) )._node;
+		
+		return this;
+	}
 
 	private Element load( Object father, Field field ) throws Exception {
 
