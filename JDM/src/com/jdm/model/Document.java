@@ -1,33 +1,41 @@
 package com.jdm.model;
 
-import static com.jdm.engine.Engine.build;
-
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
+
+import com.jdm.engine.Engine;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.layout.Region;
 import javafx.stage.Stage;
 
 public final class Document {
 
-	private final String stylesheet;
+	private final Path tmp;
 
-	//private final Object model;
+	public final Map<String, Boolean> persists;
+
+	public final  Set<String> posibles;
+
+	public final String _default;
 	
-	private final String title;
+	private String stylesheet;
 
-	private final int height;
-
-	private final int width;
-
+	private Object model;
+	
 	private Scene scene;
+
+	public String now;
 
 	public Document( Object instance ) throws Exception { this( instance, null ); }
 
@@ -49,26 +57,37 @@ public final class Document {
 	        ctor.setAccessible(flag);
 		}
 
-		if ( instance == null ) throw new IllegalArgumentException( "JDM - Error: instace == null && class == null" ); 
+		if ( instance == null ) throw new IllegalArgumentException( "JDM - Error: instance == null && class == null" ); 
 
 		else {
+
+			tmp = Engine.registry();
 			
-			Model m = build( this, instance );
-
-			//model = instance;
+			model = instance;
 			
-			stylesheet =  m.styles();
+			c = model.getClass();
 
-			title = m.title();
+			List<String> roots = Engine.getRoots( c.getDeclaredFields() );
 
-			height = m.height();
-
-			width = m.width();
-
-			//scene = new Scene(build.root(), width, height);
+			_default = roots.get(0);
 			
-			scene = new Scene(m.root(), width, height);
+			now = _default;
 			
+			posibles = new HashSet<>(roots);
+
+			persists = new HashMap<>();
+			
+			roots.forEach(r -> persists.put(r, false));
+			
+			Model m = Engine.build(now, model);
+			
+			stylesheet = m.styles();
+
+			scene = new Scene(m.root());
+
+	    	Files.write(tmp, stylesheet.getBytes(StandardCharsets.UTF_8));
+
+		    scene.getStylesheets().add( tmp.toUri().toString() );
 		}
 
 	}
@@ -179,27 +198,101 @@ public final class Document {
 		return node.lookupAll( selector );
 	}
 
-	public void configure(Stage stage) throws IOException {
-		stage.setTitle(title);
-		stage.setScene(
-			configure()
-		);
+	private void update() {
+		try {
+
+			Model m = Engine.build(now, model);
+
+			stylesheet = m.styles();
+
+			update(scene, m.root());
+
+		} catch (Exception e) {}
+		
+	}
+	
+	private void update(Scene scene, Parent root) throws IOException {
+		scene.setRoot( root );
+		
+    	Files.write(tmp, stylesheet.getBytes(StandardCharsets.UTF_8));
+
+    	scene.getStylesheets().clear();
+    	
+	    scene.getStylesheets().add( tmp.toUri().toString() );
 	}
 
-	private Scene configure() throws IOException {
+	public void swap(String root) {
+		if ( posibles.contains(root) ) {
 
-		String css = getStylesheet();
+			now = root;
 
-		Path tmp = Files.createTempFile("jdm-css", ".css");
+			update();
 
-		tmp.toFile().deleteOnExit();
+		}
+	}
+	
+	
 
-    	Files.write(tmp, css.getBytes(StandardCharsets.UTF_8));
+	public void swap(String root, Action<RootCTX> action) {
+		
+		swap(root);
 
-	    scene.getStylesheets().add( tmp.toUri().toString() );
+		action.exe( new RootCTX( getRoot(), now ) );
+		
+	}
 
-		return scene;
+	public void swap(String root, Factory<Scene> factory) {
+		swap(root);
 
+		Parent r = getRoot();
+
+		scene.setRoot(new Region());
+		
+		scene = factory.factory(r);
+	}
+
+	public void swap(String root, Factory<Scene> factory, Action<SceneCTX> action) {
+		swap(root, factory);
+		
+		SceneCTX ctx = new SceneCTX(getRoot(), now);
+		
+		action.exe( ctx );
+		
+		if (ctx.stage != null) {
+			
+			ctx.stage.setScene(scene);
+			
+			ctx.stage.setTitle(ctx.title);
+			ctx.stage.setWidth(ctx.width);
+			ctx.stage.setHeight(ctx.height);
+
+		}
+		
+		update();
+	}
+	
+	@FunctionalInterface
+	public interface Factory<T> { T factory(Parent root); }
+
+	@FunctionalInterface
+	public interface Action<T> { void exe(T ctx); }
+	
+	public class RootCTX {
+	    public final Parent node;
+	    public final String name;
+	    
+	    public RootCTX( Parent node, String name ) {
+			this.node = node;
+			this.name = name;
+		}
+	}
+
+	public class SceneCTX extends RootCTX {
+		public SceneCTX(Parent node, String name) { super(node, name); }
+	    public Stage stage;
+	    public String title;
+	    public double width;
+	    public double height;
 	}
 
 	public String getStylesheet() {
@@ -214,16 +307,5 @@ public final class Document {
 		return scene.getRoot();
 	}
 
-	public String getTitle() {
-		return title;
-	}
-
-	public int getHeight() {
-		return height;
-	}
-
-	public int getWidth() {
-		return width;
-	}
-
+	
 }

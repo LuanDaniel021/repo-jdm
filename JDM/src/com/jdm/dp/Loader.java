@@ -9,9 +9,9 @@ import com.jdm.meta.Image;
 import com.jdm.meta.Layout;
 import com.jdm.meta.Styles;
 import com.jdm.model.Document;
-import com.jdm.model.DocumentModel;
 
 import javafx.application.Application;
+import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
@@ -28,13 +28,7 @@ public class Loader extends Application {
 	public static void execute() { launch(); }
 
 	@DocumentUI
-	static class Doc extends DocumentModel {
-		
-		{
-			setWidth( 750 );
-			setHeight( 500 );
-			setTitle("Login Screen");
-		}
+	static class Doc {
 		
 		@Styles( background_color = "gray" )
 		HBox body = new HBox() {
@@ -188,18 +182,43 @@ public class Loader extends Application {
 
 		Document document = new Document( new Doc() );
 
-		document.configure( ps );
-		
-//		System.out.println(document.getNodeById("EX"));
-//		
-//		System.out.println(document.getNodeById("left-pane"));
+		ps.setScene( document.getScene() );
+
+//		document.swap("body", ctx -> {
+//			
+//			//ctx.root = "asd";
 //
-//		System.out.println(document.getNodeClass("CAIXA"));
+//		});
 //		
-//		System.out.println(document.getNodeClassAll("CAIXA"));
+//		document.swap("body", Scene::new);
 //		
-//		System.out.println(document.lookup("CAIXA"));
-//		
+//		document.swap("body", Scene::new, ctx -> {
+//			ctx.width = 1;
+//		});
+
+		
+		Button btnTrocar = (Button) document.getNodeById("meu-botao-id");
+
+		System.out.println(btnTrocar);
+		
+		btnTrocar.setOnAction(e -> {
+
+		    document.swap("body", Scene::new, ctx -> {
+		        ctx.stage = ps;
+		        ctx.title = "Acesso Restrito";
+		        ctx.width = 400.0;
+		    });
+
+		});
+
+		System.out.println(document.getNodeById("left-pane"));
+
+		System.out.println(document.getNodeClass("CAIXA"));
+		
+		System.out.println(document.getNodeClassAll("CAIXA"));
+		
+		System.out.println(document.lookup("CAIXA"));
+		
 		ps.show();
 	}
 }

@@ -2,9 +2,14 @@ package com.jdm.engine;
 
 import static com.jdm.engine.Builder.handle;
 
+import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.jdm.model.Document;
 import com.jdm.model.Model;
@@ -14,11 +19,11 @@ import javafx.scene.Parent;
 
 public class Engine {
 
-	public static Model build( Document document, Object instace ) throws Exception {
+	static int current_id = 0;
+	
+	public static Model build( Document document, Object instance ) throws Exception {
 		
-		Head hd = handle( instace, new Head() );
-		
-		Struct st = handle( instace, new Struct() );
+		Struct st = handle( instance, new Struct() );
 		
 		return new Model() {
 
@@ -32,22 +37,36 @@ public class Engine {
 				return st.root;
 			}
 
-			@Override
-			public String title() {
-				return hd.title;
-			}
-
-			@Override
-			public int height() {
-				return hd.height;
-			}
-
-			@Override
-			public int width() {
-				return hd.width;
-			}
-
 		};
+
+	}
+	
+	public static Model build( String root, Object instance ) throws Exception {
+		Struct st = new Struct().build(root, instance);
+		
+		
+		
+		return new Build(st.root, st.styles.toString() );
+
+	}
+	
+	public static List<String> getRoots( Field[] fields ) throws Exception {
+		
+		Class<Parent> p = Parent.class;
+
+		List<String> posibles = new ArrayList<>();
+
+		for ( Field f : fields ) {
+
+			if ( p.isAssignableFrom( f.getType() ) ) { 
+
+				posibles.add( f.getName() );
+
+			}
+
+		}
+
+		return posibles;
 
 	}
 	
@@ -114,4 +133,29 @@ public class Engine {
         	clss.isPrimitive()  || clss.isInterface() || clss.isEnum() ||
         	Modifier.isAbstract(clss.getModifiers());
     }
+
+	public static Path registry() throws IOException {
+		current_id++;
+		
+		Path tmp = Files.createTempFile("jdm-document-css-" + current_id, ".css");
+		
+		tmp.toFile().deleteOnExit();
+		
+		return tmp;
+	}
+
+	public static Parent getRoot(Object ref, String now) {
+		try {
+
+			Field f = ref.getClass().getDeclaredField(now);
+			
+			f.setAccessible(true);
+			
+			Object obj = f.get( ref );
+			
+			return (Parent) obj;
+		}catch (Exception e) {}
+
+		return null;
+	}
 }
