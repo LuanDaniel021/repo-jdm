@@ -1,14 +1,18 @@
 package com.jdm.engine;
 
+import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.Map;
 
 import com.jdm.engine.Link.Linker;
+import com.jdm.meta.Waring;
 
+import javafx.scene.Node;
 import javafx.scene.Parent;
 
-class Struct implements Builder<Struct> {
+class Struct {
 	
 	public Map<String, Integer> current;
 
@@ -16,41 +20,26 @@ class Struct implements Builder<Struct> {
 
 	public Parent root;
 	
+	public Object model;
+	
 	{
 		current  = new HashMap<>();
 		styles   = new StringBuilder();
 		root = null;
 	}
 	
-	@Override
-	public Struct build( Object model ) throws Exception {
-
-		Class<?> clss = model.getClass();
-
-		Root roots = new Root(clss.getDeclaredFields());
-
-		if ( roots.posibles.isEmpty() ) {
-
-			throw new IllegalStateException("ERROR: Nenhum campo do tipo Parent foi definido como root em " + clss.getSimpleName());
-
-		}
-
-		root = (Parent) load( model, clss.getDeclaredField( roots.now ) )._node;
-
-		return this;
-
-	}
-	
-	public Struct build( String name, Object model ) throws Exception {
+	public Struct build( Field field, Object object ) throws Exception {
 		
-		root = (Parent) load( model, model.getClass().getDeclaredField( name ) )._node;
+		model = object;
+		
+		root = (Parent) load( object, field )._node;
 		
 		return this;
 	}
 
-	private Element load( Object father, Field field ) throws Exception {
+	Element load( Object father, Field field ) throws Exception {
 
-		Element element = new Element( Engine.instance(father, field), field, genericID( field.getType() ) );
+		Element element = new Element( instance(father, field), field, genericID( field.getType() ) );
 
 		if ( element._ignore ) {
 
@@ -73,34 +62,29 @@ class Struct implements Builder<Struct> {
 			current.merge( element._type_name, 1, Integer::sum );
 
 		}
+		
+		wire(element._name, element);
 
 		styles.append( element.stylesheet );
 
-		boolean anonymus = element._node.getClass().isAnonymousClass();
-		
-		boolean instaced = !anonymus && element._type.isMemberClass();
-		
-		if ( anonymus || instaced ) {
+		Linker path = Link.get( element._node );
 
-			Linker path = Link.get( element._node );
-			
-			if ( path != null ) {
+		if ( path != null ) {
 
-				Field[] fields = element._node.getClass().getDeclaredFields();
+			Field[] fields = element._node.getClass().getDeclaredFields();
 
-				for ( Field _field : fields ) {
+			for ( Field _field : fields ) {
 
-					if ( Engine.shouldSkip(_field) ) continue;
+				
+				if ( shouldSkip(_field) ) continue;
 
-					else {
+				else {
 
-						Element child = load( element._node, _field );
-								
-						if (!child._ignore) {
-							
-							path.link( element._node, child);
+					Element child = load( element._node, _field );
 
-						}
+					if (!child._ignore) {
+
+						path.link( element._node, child);
 
 					}
 
@@ -113,6 +97,27 @@ class Struct implements Builder<Struct> {
 		return element;
 	}
 
+	private void wire(String name, Element el) { Node node = el._node;
+		try {
+			Field field = model.getClass().getDeclaredField(name);
+			if ( field.isAnnotationPresent(Waring.class) ) {
+			
+				if ( field.getType().getClass().isAssignableFrom( el._type.getClass() ) ) {
+					
+					boolean flag = field.isAccessible();
+
+					field.setAccessible(true);
+
+					field.set(model, node);
+
+		            field.setAccessible(flag);
+				}
+			}
+			
+
+        } catch (Exception e) {}
+	}
+	
 	private String genericID(Class<?> type) {
 
 		String key = type.getSimpleName();
@@ -133,5 +138,69 @@ class Struct implements Builder<Struct> {
 		
 		return String.format("%s-%d", key, count);
 	}
+	
+	Node instance( Object father, Field field ) throws Exception {
+
+		boolean flag = field.isAccessible();
+
+		field.setAccessible(true);
+
+		Object instance = field.get( father );
+
+		Class<?> clss = field.getType();
+		
+		if (instance == null) {
+			try {
+				try {
+					Constructor<?> ctor = clss.getDeclaredConstructor();
+
+		            ctor.setAccessible(true);
+
+		            instance = ctor.newInstance();
+				}
+
+				catch (NoSuchMethodException e) {
+
+		        	Constructor<?> ctor = clss.getDeclaredConstructor( clss.getDeclaringClass() );
+
+		        	ctor.setAccessible(true);
+		        	
+	        		instance = ctor.newInstance(father);
+
+	        	}
+				
+				field.set( father, instance );
+			}
+
+			catch (Exception e) {
+				String className = field.getType().getSimpleName();
+				String fieldName = field.getName();
+
+				System.err.println(
+					String.format(
+						"JDM - Error: Class '%s' at field '%s' is not static. External components must be static to be instantiated.",
+						className, fieldName
+					)
+				);
+				
+				instance = new Element.Error();
+			}
+		}
+
+		field.setAccessible(flag);
+
+        return (Node) instance;
+
+	}
+	
+	boolean shouldSkip(Field field) {
+		
+		Class<?> clss = field.getType();
+        
+		return !Node.class.isAssignableFrom(clss) ||
+        	field.isSynthetic() || Modifier.isStatic(field.getModifiers()) ||
+        	clss.isPrimitive()  || clss.isInterface() || clss.isEnum() ||
+        	Modifier.isAbstract(clss.getModifiers());
+    }
 
 }
