@@ -1,54 +1,21 @@
 package com.jdm.engine;
 
-import static com.jdm.engine.Builder.handle;
-
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
-import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-import com.jdm.model.Document;
-import com.jdm.model.Model;
+import com.jdm.meta.Root;
 
-import javafx.scene.Node;
 import javafx.scene.Parent;
 
 public class Engine {
 
 	static int current_id = 0;
-	
-	public static Model build( Document document, Object instance ) throws Exception {
-		
-		Struct st = handle( instance, new Struct() );
-		
-		return new Model() {
-
-			@Override
-			public String styles() {
-				return st.styles.toString();
-			}
-
-			@Override
-			public Parent root() {
-				return st.root;
-			}
-
-		};
-
-	}
-	
-	public static Model build( String root, Object instance ) throws Exception {
-		Struct st = new Struct().build(root, instance);
-		
-		
-		
-		return new Build(st.root, st.styles.toString() );
-
-	}
 	
 	public static List<String> getRoots( Field[] fields ) throws Exception {
 		
@@ -58,9 +25,13 @@ public class Engine {
 
 		for ( Field f : fields ) {
 
-			if ( p.isAssignableFrom( f.getType() ) ) { 
+			if ( f.isAnnotationPresent( Root.class )) {
 
-				posibles.add( f.getName() );
+				if ( p.isAssignableFrom( f.getType() ) ) { 
+
+					posibles.add( f.getName() );
+
+				}
 
 			}
 
@@ -70,70 +41,6 @@ public class Engine {
 
 	}
 	
-	static Node instance( Object father, Field field ) throws Exception {
-
-		boolean flag = field.isAccessible();
-
-		field.setAccessible(true);
-
-		Object instance = field.get( father );
-
-		Class<?> clss = field.getType();
-		
-		if (instance == null) {
-			try {
-				try {
-					Constructor<?> ctor = clss.getDeclaredConstructor();
-
-		            ctor.setAccessible(true);
-
-		            instance = ctor.newInstance();
-				}
-
-				catch (NoSuchMethodException e) {
-
-		        	Constructor<?> ctor = clss.getDeclaredConstructor( clss.getDeclaringClass() );
-
-		        	ctor.setAccessible(true);
-		        	
-	        		instance = ctor.newInstance(father);
-
-	        	}
-				
-				field.set( father, instance );
-			}
-
-			catch (Exception e) {
-				String className = field.getType().getSimpleName();
-				String fieldName = field.getName();
-
-				System.err.println(
-					String.format(
-						"Error: Class '%s' at field '%s' is not static. External components must be static to be instantiated.",
-						className, fieldName
-					)
-				);
-				
-				instance = new Element.Error();
-			}
-		}
-
-		field.setAccessible(flag);
-
-        return (Node) instance;
-
-	}
-	
-	static boolean shouldSkip(Field field) {
-		
-		Class<?> clss = field.getType();
-        
-		return !Node.class.isAssignableFrom(clss) ||
-        	field.isSynthetic() || Modifier.isStatic(field.getModifiers()) ||
-        	clss.isPrimitive()  || clss.isInterface() || clss.isEnum() ||
-        	Modifier.isAbstract(clss.getModifiers());
-    }
-
 	public static Path registry() throws IOException {
 		current_id++;
 		
@@ -144,18 +51,115 @@ public class Engine {
 		return tmp;
 	}
 
-	public static Parent getRoot(Object ref, String now) {
+	public static Field getField(String name, Class<?> _class) {
+		Field field;
+
 		try {
 
-			Field f = ref.getClass().getDeclaredField(now);
-			
-			f.setAccessible(true);
-			
-			Object obj = f.get( ref );
-			
-			return (Parent) obj;
-		}catch (Exception e) {}
+			field = _class.getDeclaredField(name);
 
-		return null;
+		}
+
+		catch (NoSuchFieldException | SecurityException e) {
+
+			field = null;
+
+		}
+
+		return field;
 	}
+
+	public static void clear(Field field, Object instance) {
+		boolean flag = field.isAccessible();
+
+		field.setAccessible(true);
+
+		try {
+
+			field.set(instance, null);
+
+		}
+
+		catch (IllegalArgumentException | IllegalAccessException e) {}
+
+		field.setAccessible(flag);
+	}
+
+	public static Model build(Field field, Class<?> _class) {
+		Model build;
+
+		try {
+
+			Object instance = null;
+			
+			boolean flag = false;
+
+			Constructor<?> ctor = _class.getDeclaredConstructor();
+
+			flag = ctor.isAccessible();
+
+			ctor.setAccessible(true);
+
+			instance = ctor.newInstance();
+
+	        ctor.setAccessible(flag);
+
+	        build = build( field, instance );
+
+		}
+
+		catch (Exception e) {
+
+			build = null;
+
+		}
+
+		return build;
+	}
+	
+	public static Model build(Field field, Object instance) throws Exception {
+		Struct st = new Struct();
+
+		st.build( field, instance);
+
+		return new Model(st.root, st.styles);
+	}
+	
+	public static Parent root(Model model) {
+		return model.root();
+	}
+	
+	public static String styles(Model model) {
+		return model.styles().toString();
+	}
+
+	public static void reload(Path tmp, String styles) {
+		try {
+
+			Files.write(tmp, styles.getBytes(StandardCharsets.UTF_8));
+
+		} catch (IOException e) { System.err.println("JDM - Error: Styles dont load in temporary file"); }
+	}
+
+	public static void define(Field field, Object instance, Parent parent) {
+		boolean flag = field.isAccessible();
+
+		field.setAccessible(true);
+
+		try {
+
+			field.set(instance, parent);
+
+		}
+
+		catch (IllegalArgumentException | IllegalAccessException e) {
+
+			System.err.println("JDM - Error: Fail to anchor root in model field.");
+
+		}
+
+		field.setAccessible(flag);
+		
+	}
+
 }

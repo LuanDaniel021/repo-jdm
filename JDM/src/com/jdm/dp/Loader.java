@@ -3,11 +3,12 @@ package com.jdm.dp;
 import java.util.List;
 
 import com.jdm.meta.Class;
-import com.jdm.meta.DocumentUI;
 import com.jdm.meta.ID;
 import com.jdm.meta.Image;
 import com.jdm.meta.Layout;
+import com.jdm.meta.Root;
 import com.jdm.meta.Styles;
+import com.jdm.meta.Waring;
 import com.jdm.model.Document;
 
 import javafx.application.Application;
@@ -25,13 +26,10 @@ import javafx.stage.Stage;
 
 public class Loader extends Application {
 
-	public static void execute() { launch(); }
-
-	@DocumentUI
 	static class Doc {
 		
 		@Styles( background_color = "gray" )
-		HBox body = new HBox() {
+		@Root HBox login = new HBox() {
 
 			@ID("left-pane")
 			@Class({"CAIXA"})
@@ -48,7 +46,7 @@ public class Loader extends Application {
 				target = "Region",
 				background_color = "red"
 			)
-			private VBox left = new VBox()  {
+			VBox left = new VBox()  {
 				
 				@Image(
 			    	url = "https://cdn-icons-png.flaticon.com/512/5087/5087579.png",
@@ -58,7 +56,7 @@ public class Loader extends Application {
 			    ImageView logo;
 				
 				class Welcome extends Label {
-					
+
 					{ setText("Bem vindo!!!"); }
 					
 				}
@@ -91,7 +89,7 @@ public class Loader extends Application {
 				{ setHgrow(this, Priority.ALWAYS); }
 				
 				@Layout(column=1)
-				public List<Button> botoesLaterais; // ignora
+				public List<Button> botoesLaterais; // vai ser ignorado
 				
 				@Class({"TESTE"})
 				@Styles(
@@ -139,7 +137,7 @@ public class Loader extends Application {
 				    PasswordField txtPass;
 				};
 				
-				@ID("EX")
+				@ID("meu-botao-id")
 				@Class({"CAIXA"})
 				@Styles(
 					state = "hover",
@@ -171,54 +169,123 @@ public class Loader extends Application {
 			
 		};
 		
+		@Waring
+		TextField txtUser;
+		
+		@ID("TESTE")
+		@Root HBox body = new HBox() {
+			@ID("meu-botao-id")
+			@Class({"CAIXA"})
+			@Styles(
+				state = "hover",
+	    		text_fill = "blue"
+	        )
+			@Styles(
+	    		height = "45",
+	    		pref_width = "200",
+	    		background_color = "#3498db",
+	    		border_width = "1",
+	    	    border_radius = "0",
+	    	    background_radius = "0",
+	    	    font_size = "14==",
+	    	    font_weight = "BOLD",
+	    		text_fill = "red",
+	    		alignment = "center"
+	        )
+		    Button btnLogin = new Button("Entrar");
+		};
+		
 		int _root_;
 
 	}
 	
-	static class BBB extends Button {} // erro
+	class BBB extends Button {} // erro, vai mostrar uma area em vermelho
 
 	@Override
 	public void start(Stage ps) throws Exception {
 
-		Document document = new Document( new Doc() );
+		Document.create(new Document( Doc.class ), document -> {
 
-		ps.setScene( document.getScene() );
+			ps.setScene( document.getScene() );
 
-//		document.swap("body", ctx -> {
+			Doc doc = (Doc) document.getModel();
+			
+			document.onCreate("body", () -> {
+				
+				Button btn = (Button) document.getNodeById("meu-botao-id");
+				
+				btn.setOnAction(e -> {
+
+					document.swap("login", Scene::new, _ctx -> {
+						_ctx.stage = ps;
+						_ctx.title = "Tela de Login";
+						_ctx.height = 500;
+						_ctx.width = 750.0;
+				    });
+
+				});
+
+			});
+			
+			document.onCreate("login", () -> {
+				
+				Button btn = (Button) document.getNodeById("meu-botao-id");
+				
+				btn.setOnAction(e -> {
+
+					document.swap("body", Scene::new, _ctx -> {
+				        ps.setScene( _ctx.scene );
+				        ps.setWidth(400);
+				        ps.setTitle("Acesso Restrito");
+				    });
+
+				});
+
+			});
+			
+			document.on("login", () -> {
+				
+				Button btn = (Button) document.getNodeById("meu-botao-id");
+				
+				btn.setOnAction(e -> {
+
+					document.swap("body", Scene::new, _ctx -> {
+				        ps.setScene( _ctx.scene );
+				        ps.setWidth(400);
+				        ps.setTitle("Acesso Restrito");
+				    });
+
+				});
+
+			}, Document.CREATE);
+
+			// swap, funciona
+//			document.swap("body", ctx -> {
+//				
+//				//ctx.root = "asd";
+	//
+//			});
 //			
-//			//ctx.root = "asd";
-//
-//		});
-//		
-//		document.swap("body", Scene::new);
-//		
-//		document.swap("body", Scene::new, ctx -> {
-//			ctx.width = 1;
-//		});
+//			document.swap("body", Scene::new);
+//			
+//			document.swap("body", Scene::new, ctx -> {
+//				ctx.width = 1;
+//			});
+//			
+//			ps.setScene( document.getScene() );
+			
+			System.err.println(doc.txtUser); // wire, funciona... vai mudar
 
-		
-		Button btnTrocar = (Button) document.getNodeById("meu-botao-id");
+			System.out.println(document.getNodeById("left-pane"));
 
-		System.out.println(btnTrocar);
-		
-		btnTrocar.setOnAction(e -> {
-
-		    document.swap("body", Scene::new, ctx -> {
-		        ctx.stage = ps;
-		        ctx.title = "Acesso Restrito";
-		        ctx.width = 400.0;
-		    });
-
+			System.out.println(document.getNodeClass("CAIXA"));
+			
+			System.out.println(document.getNodeClassAll("CAIXA"));
+			
+			System.out.println(document.lookup("CAIXA"));
+			
 		});
 
-		System.out.println(document.getNodeById("left-pane"));
-
-		System.out.println(document.getNodeClass("CAIXA"));
-		
-		System.out.println(document.getNodeClassAll("CAIXA"));
-		
-		System.out.println(document.lookup("CAIXA"));
-		
 		ps.show();
 	}
 }
