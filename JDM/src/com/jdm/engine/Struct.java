@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 import com.jdm.engine.Link.Linker;
-import com.jdm.meta.Wari;
+import com.jdm.meta.Wire;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -105,7 +105,7 @@ class Struct {
 	private void wire(String name, Element el) { Node node = el._node;
 		try {
 			Field field = model.getClass().getDeclaredField(name);
-			if ( field.isAnnotationPresent(Wari.class) ) {
+			if ( field.isAnnotationPresent(Wire.class) ) {
 			
 				if ( field.getType().getClass().isAssignableFrom( el._type.getClass() ) ) {
 					wiring.add( new Wiring(node, name ));

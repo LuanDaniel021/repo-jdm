@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Set;
 
 import com.jdm.meta.Root;
-import com.jdm.meta.Wari;
+import com.jdm.meta.Wire;
 
 import javafx.scene.Parent;
 
@@ -43,7 +43,7 @@ public class Engine {
 
 			}
 			
-			if (f.isAnnotationPresent( Wari.class )) {
+			if (f.isAnnotationPresent( Wire.class )) {
 				
 				data.warings.add( f.getName() );
 
@@ -59,7 +59,7 @@ public class Engine {
 		return dto.posibles;
 	}
 	
-	public static List<String> getWarings( DocumentDTO dto ) {
+	public static List<String> getWirings( DocumentDTO dto ) {
 		return dto.warings;
 	}
 	@Deprecated
@@ -207,7 +207,7 @@ public class Engine {
 		field.setAccessible(flag);
 	}
 
-	public static <T> void waring(Model m, Object i, Class<?> c) {
+	public static <T> void wiring(Model m, Object i, Class<?> c) {
 		try {
 			Set<Wiring> ws = m.wiring();
 			

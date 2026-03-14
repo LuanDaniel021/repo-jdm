@@ -71,7 +71,7 @@ public final class Document {
 
 		now = _default;
 
-		wirings  = new HashSet<>( Engine.getWarings( dto ) );
+		wirings  = new HashSet<>( Engine.getWirings( dto ) );
 		posibles = new HashSet<>(roots);
 		persists = new HashMap<>();
 
@@ -83,7 +83,7 @@ public final class Document {
 
 		String s = Engine.styles( m );
 
-		Engine.waring( m, model, c );
+		Engine.wiring( m, model, c );
 
 		scene = f.factory( p );
 
@@ -114,7 +114,7 @@ public final class Document {
 
 	public Node getNodeById(Node node, String id) {
 
-		if ( node.getId().equals( id ) ) {
+		if ( id.equals( node.getId() ) ) {
 
 			return node;
 
@@ -264,7 +264,7 @@ public final class Document {
 
 				String s = Engine.styles( m );
 				
-				Engine.waring( m, i, c );
+				Engine.wiring( m, i, c );
 				
 				Engine.define( f, i, p );
 

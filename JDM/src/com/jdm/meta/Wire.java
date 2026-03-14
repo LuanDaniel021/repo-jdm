@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 
 @Retention(RUNTIME)
 @Target({TYPE,ElementType.FIELD})
-public @interface Wari {
+public @interface Wire {
 
 }
