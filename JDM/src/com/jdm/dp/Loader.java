@@ -8,7 +8,7 @@ import com.jdm.meta.Image;
 import com.jdm.meta.Layout;
 import com.jdm.meta.Root;
 import com.jdm.meta.Styles;
-import com.jdm.meta.Waring;
+import com.jdm.meta.Wari;
 import com.jdm.model.Document;
 
 import javafx.application.Application;
@@ -169,7 +169,7 @@ public class Loader extends Application {
 			
 		};
 		
-		@Waring
+		@Wari
 		TextField txtUser;
 		
 		@ID("TESTE")
@@ -204,66 +204,66 @@ public class Loader extends Application {
 	@Override
 	public void start(Stage ps) throws Exception {
 
-		Document.create(new Document( Doc.class ), document -> {
+		Document document = new Document( Doc.class );
 
-			ps.setScene( document.getScene() );
+		ps.setScene( document.getScene() );
 
-			Doc doc = (Doc) document.getModel();
+		Doc doc = (Doc) document.getModel();
+		
+		document.onCreate("body", () -> {
 			
-			document.onCreate("body", () -> {
-				
-				Button btn = (Button) document.getNodeById("meu-botao-id");
-				
-				btn.setOnAction(e -> {
+			Button btn = (Button) document.getNodeById("meu-botao-id");
+			
+			btn.setOnAction(e -> {
 
-					document.swap("login", Scene::new, _ctx -> {
-						_ctx.stage = ps;
-						_ctx.title = "Tela de Login";
-						_ctx.height = 500;
-						_ctx.width = 750.0;
-				    });
-
-				});
+				document.swap("login", Scene::new, _ctx -> {
+					_ctx.stage = ps;
+					_ctx.title = "Tela de Login";
+					_ctx.height = 500;
+					_ctx.width = 750.0;
+			    });
 
 			});
+
+		});
+		
+		document.onCreate("login", () -> {
 			
-			document.onCreate("login", () -> {
-				
-				Button btn = (Button) document.getNodeById("meu-botao-id");
-				
-				btn.setOnAction(e -> {
+			Button btn = (Button) document.getNodeById("meu-botao-id");
+			
+			btn.setOnAction(e -> {
 
-					document.swap("body", Scene::new, _ctx -> {
-				        ps.setScene( _ctx.scene );
-				        ps.setWidth(400);
-				        ps.setTitle("Acesso Restrito");
-				    });
-
-				});
+				document.swap("body", Scene::new, _ctx -> {
+			        ps.setScene( _ctx.scene );
+			        ps.setWidth(400);
+			        ps.setTitle("Acesso Restrito");
+			    });
 
 			});
+
+		});
+		
+		document.on("login", () -> {
 			
-			document.on("login", () -> {
-				
-				Button btn = (Button) document.getNodeById("meu-botao-id");
-				
-				btn.setOnAction(e -> {
+			Button btn = (Button) document.getNodeById("meu-botao-id");
+			
+			btn.setOnAction(e -> {
 
-					document.swap("body", Scene::new, _ctx -> {
-				        ps.setScene( _ctx.scene );
-				        ps.setWidth(400);
-				        ps.setTitle("Acesso Restrito");
-				    });
+				document.swap("body", Scene::new, _ctx -> {
+			        ps.setScene( _ctx.scene );
+			        ps.setWidth(400);
+			        ps.setTitle("Acesso Restrito");
+			    });
 
-				});
+			});
 
-			}, Document.CREATE);
+		}, Document.CREATE);
 
-			// swap, funciona
+		// swap, funciona
 //			document.swap("body", ctx -> {
 //				
 //				//ctx.root = "asd";
-	//
+//
 //			});
 //			
 //			document.swap("body", Scene::new);
@@ -273,18 +273,17 @@ public class Loader extends Application {
 //			});
 //			
 //			ps.setScene( document.getScene() );
-			
-			System.err.println(doc.txtUser); // wire, funciona... vai mudar
+		
+		System.err.println(doc.txtUser); // wire, funciona... vai mudar
 
-			System.out.println(document.getNodeById("left-pane"));
+		System.out.println(document.getNodeById("left-pane"));
 
-			System.out.println(document.getNodeClass("CAIXA"));
-			
-			System.out.println(document.getNodeClassAll("CAIXA"));
-			
-			System.out.println(document.lookup("CAIXA"));
-			
-		});
+		System.out.println(document.getNodeClass("CAIXA"));
+		
+		System.out.println(document.getNodeClassAll("CAIXA"));
+		
+		System.out.println(document.lookup("CAIXA"));
+		
 
 		ps.show();
 	}

@@ -4,10 +4,12 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import com.jdm.engine.Link.Linker;
-import com.jdm.meta.Waring;
+import com.jdm.meta.Wari;
 
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -21,10 +23,13 @@ class Struct {
 	public Parent root;
 	
 	public Object model;
+
+	public Set<Wiring> wiring;
 	
 	{
 		current  = new HashMap<>();
 		styles   = new StringBuilder();
+		wiring   = new HashSet<>();
 		root = null;
 	}
 	
@@ -100,20 +105,12 @@ class Struct {
 	private void wire(String name, Element el) { Node node = el._node;
 		try {
 			Field field = model.getClass().getDeclaredField(name);
-			if ( field.isAnnotationPresent(Waring.class) ) {
+			if ( field.isAnnotationPresent(Wari.class) ) {
 			
 				if ( field.getType().getClass().isAssignableFrom( el._type.getClass() ) ) {
-					
-					boolean flag = field.isAccessible();
-
-					field.setAccessible(true);
-
-					field.set(model, node);
-
-		            field.setAccessible(flag);
+					wiring.add( new Wiring(node, name ));
 				}
 			}
-			
 
         } catch (Exception e) {}
 	}
