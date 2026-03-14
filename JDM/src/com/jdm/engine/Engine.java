@@ -8,8 +8,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 import com.jdm.meta.Root;
+import com.jdm.meta.Wire;
 
 import javafx.scene.Parent;
 
@@ -17,6 +19,50 @@ public class Engine {
 
 	static int current_id = 0;
 	
+	public static class DocumentDTO {
+		List<String> posibles = new ArrayList<>();
+		List<String> warings = new ArrayList<>();
+	}
+	
+	public static DocumentDTO extract( Field[] fields ) throws Exception {
+		DocumentDTO data = new DocumentDTO();
+		
+		Class<Parent> p = Parent.class;
+		
+		for ( Field f : fields ) {
+
+			if ( f.isAnnotationPresent( Root.class )) {
+
+				if ( p.isAssignableFrom( f.getType() ) ) { 
+
+					data.posibles.add( f.getName() );
+
+				}
+
+				continue;
+
+			}
+			
+			if (f.isAnnotationPresent( Wire.class )) {
+				
+				data.warings.add( f.getName() );
+
+				continue;
+			}
+
+		}
+		
+		return data;
+	}
+	
+	public static List<String> getRoots( DocumentDTO dto ) {
+		return dto.posibles;
+	}
+	
+	public static List<String> getWirings( DocumentDTO dto ) {
+		return dto.warings;
+	}
+	@Deprecated
 	public static List<String> getRoots( Field[] fields ) throws Exception {
 		
 		Class<Parent> p = Parent.class;
@@ -122,7 +168,7 @@ public class Engine {
 
 		st.build( field, instance);
 
-		return new Model(st.root, st.styles);
+		return new Model(st.wiring, st.root, st.styles);
 	}
 	
 	public static Parent root(Model model) {
@@ -133,15 +179,15 @@ public class Engine {
 		return model.styles().toString();
 	}
 
-	public static void reload(Path tmp, String styles) {
-		try {
-
-			Files.write(tmp, styles.getBytes(StandardCharsets.UTF_8));
-
-		} catch (IOException e) { System.err.println("JDM - Error: Styles dont load in temporary file"); }
+	public static Path reload(Path tmp, String styles) {
+		try { Files.write(tmp, styles.getBytes(StandardCharsets.UTF_8)); }
+		catch (IOException e) {
+			System.err.println("JDM - Error: Styles dont load in temporary file");
+		}
+		return tmp;
 	}
 
-	public static void define(Field field, Object instance, Parent parent) {
+	public static void define(Field field, Object instance, Object parent) {
 		boolean flag = field.isAccessible();
 
 		field.setAccessible(true);
@@ -159,7 +205,19 @@ public class Engine {
 		}
 
 		field.setAccessible(flag);
-		
+	}
+
+	public static <T> void wiring(Model m, Object i, Class<?> c) {
+		try {
+			Set<Wiring> ws = m.wiring();
+			
+			for (Wiring wa : ws) {
+				Field f = c.getDeclaredField(wa.name);
+				
+				define(f, i, wa.obj);
+				
+			}	
+		} catch (Exception e) { e.printStackTrace();}
 	}
 
 }

@@ -8,7 +8,7 @@ import com.jdm.meta.Image;
 import com.jdm.meta.Layout;
 import com.jdm.meta.Root;
 import com.jdm.meta.Styles;
-import com.jdm.meta.Waring;
+import com.jdm.meta.Wire;
 import com.jdm.model.Document;
 
 import javafx.application.Application;
@@ -169,7 +169,7 @@ public class Loader extends Application {
 			
 		};
 		
-		@Waring
+		@Wire
 		TextField txtUser;
 		
 		@ID("TESTE")
@@ -204,87 +204,62 @@ public class Loader extends Application {
 	@Override
 	public void start(Stage ps) throws Exception {
 
-		Document.create(new Document( Doc.class ), document -> {
+		Document document = new Document( Doc.class, Scene::new, d ->  {
+			ps.setScene( d.getScene() );
 
-			ps.setScene( document.getScene() );
-
-			Doc doc = (Doc) document.getModel();
+			Doc doc = d.getModel();
 			
-			document.onCreate("body", () -> {
-				
-				Button btn = (Button) document.getNodeById("meu-botao-id");
-				
+			d.onCreate("body", () -> {
+
+				ps.setTitle("Acesso Restrito");
+
+				Button btn = (Button) d.getNodeById("meu-botao-id");
+
 				btn.setOnAction(e -> {
 
-					document.swap("login", Scene::new, _ctx -> {
-						_ctx.stage = ps;
-						_ctx.title = "Tela de Login";
-						_ctx.height = 500;
-						_ctx.width = 750.0;
-				    });
+					ps.setScene( d.swap("login") ); 
 
 				});
+				
+				System.out.println(doc.txtUser);
 
 			});
 			
-			document.onCreate("login", () -> {
-				
-				Button btn = (Button) document.getNodeById("meu-botao-id");
-				
+			d.on("login", () -> {
+
+				ps.setTitle("Tela de Login");
+
+				Button btn = (Button) d.getNodeById("meu-botao-id");
+
 				btn.setOnAction(e -> {
 
-					document.swap("body", Scene::new, _ctx -> {
-				        ps.setScene( _ctx.scene );
-				        ps.setWidth(400);
-				        ps.setTitle("Acesso Restrito");
-				    });
+					d.swap("body");
 
 				});
 
-			});
-			
-			document.on("login", () -> {
+				System.out.println(doc.txtUser);
 				
-				Button btn = (Button) document.getNodeById("meu-botao-id");
-				
-				btn.setOnAction(e -> {
-
-					document.swap("body", Scene::new, _ctx -> {
-				        ps.setScene( _ctx.scene );
-				        ps.setWidth(400);
-				        ps.setTitle("Acesso Restrito");
-				    });
-
-				});
-
 			}, Document.CREATE);
 
-			// swap, funciona
-//			document.swap("body", ctx -> {
-//				
-//				//ctx.root = "asd";
-	//
-//			});
-//			
-//			document.swap("body", Scene::new);
-//			
-//			document.swap("body", Scene::new, ctx -> {
-//				ctx.width = 1;
-//			});
-//			
-//			ps.setScene( document.getScene() );
-			
-			System.err.println(doc.txtUser); // wire, funciona... vai mudar
-
-			System.out.println(document.getNodeById("left-pane"));
-
-			System.out.println(document.getNodeClass("CAIXA"));
-			
-			System.out.println(document.getNodeClassAll("CAIXA"));
-			
-			System.out.println(document.lookup("CAIXA"));
-			
 		});
+
+//		// swap, formas... 
+//
+//		document.swap("body", () -> {});
+//		
+//		document.swap("body", Scene::new);
+//		
+//		document.swap("body", Scene::new, () -> {});
+//		
+//		System.err.println(doc.txtUser); // wire, funciona... eu esqueci disso
+	
+		System.out.println(document.getNodeById("left-pane"));
+	
+		System.out.println(document.getNodeClass("CAIXA"));
+		
+		System.out.println(document.getNodeClassAll("CAIXA"));
+		
+		System.out.println(document.lookup("CAIXA"));
 
 		ps.show();
 	}
