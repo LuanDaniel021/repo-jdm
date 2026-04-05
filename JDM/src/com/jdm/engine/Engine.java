@@ -8,108 +8,43 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-
-import com.jdm.meta.Root;
-import com.jdm.meta.Wire;
+import java.util.function.Supplier;
 
 import javafx.scene.Parent;
 
 public class Engine {
 
-	static int current_id = 0;
+	private static int COUNT_TempFile = 0;
+
+	private static final Supplier< String > TempFileName = () -> "jdm-TempFile-" + COUNT_TempFile++;
 	
-	public static class DocumentDTO {
-		List<String> posibles = new ArrayList<>();
-		List<String> warings = new ArrayList<>();
-	}
-	
-	public static DocumentDTO extract( Field[] fields ) throws Exception {
-		DocumentDTO data = new DocumentDTO();
-		
-		Class<Parent> p = Parent.class;
-		
-		for ( Field f : fields ) {
-
-			if ( f.isAnnotationPresent( Root.class )) {
-
-				if ( p.isAssignableFrom( f.getType() ) ) { 
-
-					data.posibles.add( f.getName() );
-
-				}
-
-				continue;
-
-			}
-			
-			if (f.isAnnotationPresent( Wire.class )) {
-				
-				data.warings.add( f.getName() );
-
-				continue;
-			}
-
-		}
-		
-		return data;
-	}
-	
-	public static List<String> getRoots( DocumentDTO dto ) {
-		return dto.posibles;
-	}
-	
-	public static List<String> getWirings( DocumentDTO dto ) {
-		return dto.warings;
-	}
-	@Deprecated
-	public static List<String> getRoots( Field[] fields ) throws Exception {
-		
-		Class<Parent> p = Parent.class;
-
+	public static List<String> extract( Model model ) throws Exception {
 		List<String> posibles = new ArrayList<>();
 
-		for ( Field f : fields ) {
+		Class<Parent> p = Parent.class;
 
-			if ( f.isAnnotationPresent( Root.class )) {
+		for ( Field f : model.fields() ) {
 
-				if ( p.isAssignableFrom( f.getType() ) ) { 
+			if ( p.isAssignableFrom( f.getType() ) ) { 
 
-					posibles.add( f.getName() );
-
-				}
+				posibles.add( f.getName() );
 
 			}
 
 		}
 
 		return posibles;
-
-	}
-	
-	public static Path registry() throws IOException {
-		current_id++;
-		
-		Path tmp = Files.createTempFile("jdm-document-css-" + current_id, ".css");
-		
-		tmp.toFile().deleteOnExit();
-		
-		return tmp;
 	}
 
 	public static Field getField(String name, Class<?> _class) {
 		Field field;
 
 		try {
-
 			field = _class.getDeclaredField(name);
-
 		}
 
 		catch (NoSuchFieldException | SecurityException e) {
-
 			field = null;
-
 		}
 
 		return field;
@@ -121,61 +56,62 @@ public class Engine {
 		field.setAccessible(true);
 
 		try {
-
 			field.set(instance, null);
-
 		}
-
 		catch (IllegalArgumentException | IllegalAccessException e) {}
 
 		field.setAccessible(flag);
 	}
 
-	public static Model build(Field field, Class<?> _class) {
-		Model build;
+	public static Model build( Class<?> _class ) throws Exception {
+		Constructor<?> ctor = _class.getDeclaredConstructor();
+
+		boolean flag = ctor.isAccessible();
+
+		ctor.setAccessible(true);
+
+		Object _self = ctor.newInstance();
+
+	    ctor.setAccessible(flag);
+
+		Path _path = Files.createTempFile( TempFileName.get(), ".css");
+
+		return new Model( _class, _self, _path );
+	}
+	
+	public static Struct struct(Field field, Class<?> _class) {
+		Struct struct;
 
 		try {
-
-			Object instance = null;
-			
-			boolean flag = false;
-
 			Constructor<?> ctor = _class.getDeclaredConstructor();
 
-			flag = ctor.isAccessible();
+			boolean flag = ctor.isAccessible();
 
 			ctor.setAccessible(true);
 
-			instance = ctor.newInstance();
+			Object instance = ctor.newInstance();
 
 	        ctor.setAccessible(flag);
 
-	        build = build( field, instance );
-
+	        struct = struct( field, instance );
 		}
 
 		catch (Exception e) {
-
-			build = null;
-
+			struct = null;
 		}
 
-		return build;
+		return struct;
 	}
 	
-	public static Model build(Field field, Object instance) throws Exception {
-		Struct st = new Struct();
-
-		st.build( field, instance);
-
-		return new Model(st.wiring, st.root, st.styles);
+	public static Struct struct(Field field, Object instance) throws Exception {
+		return new Build(field, instance).struct();
 	}
 	
-	public static Parent root(Model model) {
+	public static Parent root(Struct model) {
 		return model.root();
 	}
 	
-	public static String styles(Model model) {
+	public static String styles(Struct model) {
 		return model.styles().toString();
 	}
 
@@ -187,15 +123,13 @@ public class Engine {
 		return tmp;
 	}
 
-	public static void define(Field field, Object instance, Object parent) {
+	public static void define(Field field, Object instance, Object value) {
 		boolean flag = field.isAccessible();
 
 		field.setAccessible(true);
 
 		try {
-
-			field.set(instance, parent);
-
+			field.set(instance, value);
 		}
 
 		catch (IllegalArgumentException | IllegalAccessException e) {
@@ -207,17 +141,16 @@ public class Engine {
 		field.setAccessible(flag);
 	}
 
-	public static <T> void wiring(Model m, Object i, Class<?> c) {
-		try {
-			Set<Wiring> ws = m.wiring();
-			
-			for (Wiring wa : ws) {
-				Field f = c.getDeclaredField(wa.name);
-				
-				define(f, i, wa.obj);
-				
-			}	
-		} catch (Exception e) { e.printStackTrace();}
+	public static Field[] fields( Model model ) {
+		return model.fields();
+	}
+
+	public static Object self( Model model ) {
+		return model.self();
+	}
+
+	public static Path path( Model model ) {
+		return model.path();
 	}
 
 }

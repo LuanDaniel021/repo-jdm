@@ -2,14 +2,12 @@ package com.jdm.dp;
 
 import java.util.List;
 
+import com.jdm.Document;
 import com.jdm.meta.Class;
 import com.jdm.meta.ID;
 import com.jdm.meta.Image;
 import com.jdm.meta.Layout;
-import com.jdm.meta.Root;
 import com.jdm.meta.Styles;
-import com.jdm.meta.Wire;
-import com.jdm.model.Document;
 
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -26,10 +24,10 @@ import javafx.stage.Stage;
 
 public class Loader extends Application {
 
-	static class Doc {
+	static class Screen {
 		
 		@Styles( background_color = "gray" )
-		@Root HBox login = new HBox() {
+		HBox login = new HBox() {
 
 			@ID("left-pane")
 			@Class({"CAIXA"})
@@ -169,11 +167,8 @@ public class Loader extends Application {
 			
 		};
 		
-		@Wire
-		TextField txtUser;
-		
 		@ID("TESTE")
-		@Root HBox body = new HBox() {
+		HBox body = new HBox() {
 			@ID("meu-botao-id")
 			@Class({"CAIXA"})
 			@Styles(
@@ -195,8 +190,6 @@ public class Loader extends Application {
 		    Button btnLogin = new Button("Entrar");
 		};
 		
-		int _root_;
-
 	}
 	
 	class BBB extends Button {} // erro, vai mostrar uma area em vermelho
@@ -204,12 +197,10 @@ public class Loader extends Application {
 	@Override
 	public void start(Stage ps) throws Exception {
 
-		Document document = new Document( Doc.class, Scene::new, d ->  {
+		Document document = new Document( Screen.class, Scene::new, d ->  {
 			ps.setScene( d.getScene() );
 
-			Doc doc = d.getModel();
-			
-			d.onCreate("body", () -> {
+			d.onSwap("body", () -> {
 
 				ps.setTitle("Acesso Restrito");
 
@@ -221,25 +212,23 @@ public class Loader extends Application {
 
 				});
 				
-				System.out.println(doc.txtUser);
-
 			});
 			
-			d.on("login", () -> {
+			d.on( Document.SWAP,
+				"login", () -> {
 
-				ps.setTitle("Tela de Login");
-
-				Button btn = (Button) d.getNodeById("meu-botao-id");
-
-				btn.setOnAction(e -> {
-
-					d.swap("body");
-
-				});
-
-				System.out.println(doc.txtUser);
-				
-			}, Document.CREATE);
+					ps.setTitle("Tela de Login");
+	
+					Button btn = (Button) d.getNodeById("meu-botao-id");
+	
+					btn.setOnAction(e -> {
+	
+						d.swap("body");
+	
+					});
+	
+				}
+			);
 
 		});
 
