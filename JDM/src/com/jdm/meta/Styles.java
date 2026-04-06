@@ -34,6 +34,9 @@ public @interface Styles {
     String spacing() default "";         // Para HBox/VBox
     String fill_height() default "";     // boolean: "true"/"false"
     String fill_width() default "";
+    String fill() default "";
+    String stroke() default "";
+    String stroke_width() default "";
     String vgrow() default "";
     String hgrow() default "";
     

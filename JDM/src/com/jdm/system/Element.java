@@ -1,4 +1,4 @@
-package com.jdm.engine;
+package com.jdm.system;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -60,7 +60,7 @@ public class Element {
 
 	public Element( Node node, Field field, String genericID ) {
 
-		_ignore = field.isAnnotationPresent(Ignore.class);
+		_ignore = field.isAnnotationPresent(Ignore.class) || node == null;
 
 		_ok = !(node instanceof Error);
 

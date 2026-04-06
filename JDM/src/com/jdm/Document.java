@@ -11,12 +11,10 @@ import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import com.jdm.animate.Animation;
-import com.jdm.engine.Engine;
-import com.jdm.engine.Model;
-import com.jdm.engine.Struct;
+import com.jdm.system.Engine;
+import com.jdm.system.Model;
+import com.jdm.system.Struct;
 
-import javafx.animation.Timeline;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
@@ -27,13 +25,9 @@ public final class Document {
 	public static final int DESTROY     = 1;
 	public static final int AFTER_SWAP  = 2;
 	public static final int BEFORE_SWAP = 3;
-
+	
 	private final List< Map<String, Action> > listeners;
-
-	private final Map<String, Animation> animations;
-
 	private final Map<String, Boolean> persists;
-	private final Set<String> posibles;
 	
 	private final Class<?> _class;
 	private final Object _self;
@@ -42,7 +36,16 @@ public final class Document {
 	private Scene scene;
 	private String now;
 
-	public Document( Class<?> clss, Function<Parent, Scene> f, Consumer<Document> c ) throws Exception {
+	public Document( Class<?> clss ) throws Exception {
+		this( clss, p -> { return new Scene( p ); } );
+	}
+	public Document( Class<?> clss, Consumer<Document> c ) throws Exception {
+		this( clss, p -> { return new Scene( p ); }, c );
+	}
+	public Document( Class<?> clss, Function<Parent, Scene> f ) throws Exception {
+		this( clss, f, d -> {} );
+	}
+	public Document( Class<?> clss, Function<Parent, Scene> function, Consumer<Document> consumer ) throws Exception {
 		Model model = Engine.build( _class = clss );
 
 		_self = Engine.self(model);
@@ -51,36 +54,38 @@ public final class Document {
 
 		_path.toFile().deleteOnExit();
 
-		List<String> roots = Engine.extract( model );
-
-		posibles = new HashSet<>(roots);
-		
-		persists = new HashMap<>();
-
-		roots.forEach(r -> persists.put(r, false));
-		
-		now = roots.get(0);
-		
-		listeners = new ArrayList< Map<String, Action> >();
-		
-		listeners.add( new HashMap<>() );
-		listeners.add( new HashMap<>() );
-		listeners.add( new HashMap<>() );
-		listeners.add( new HashMap<>() );
-
-		animations = new HashMap<>();
-
-		Struct s = Engine.struct( Engine.getField( now, _class ), _self );
-
-		scene = f.apply( Engine.root( s ) );
+		Struct s = Engine.struct( model );
 
 		Engine.reload( _path, Engine.styles( s ) );
 
-		scene.getStylesheets().clear();
+		scene = function.apply( Engine.root( s ) );
 
 		scene.getStylesheets().add( _path.toUri().toString() );
 
-		c.accept( this );
+		List<String> roots = model.fields;
+
+		now = roots.get(0);
+
+		persists = new HashMap<>();
+
+		listeners = new ArrayList< Map<String, Action> >();
+
+		listeners.add( new HashMap<>() );
+		listeners.add( new HashMap<>() );
+		listeners.add( new HashMap<>() );
+		listeners.add( new HashMap<>() );
+		
+		roots.forEach(r -> {
+
+			persists.put(r, false);
+
+			if ( !r.equals( now ) ) {
+				clear( r );
+			}
+
+		});
+
+		consumer.accept( this );
 
 		Action ev = listeners.get( SWAP ).get( now );
 
@@ -90,26 +95,152 @@ public final class Document {
 
 		}
 	}
-
-	public Document( Class<?> clss ) throws Exception {
-		this( clss, Scene::new );
+	
+	public Scene swap(String root) {
+		return swap( root, scene, () -> {} );
 	}
 
-	public Document( Class<?> clss, Consumer<Document> c ) throws Exception {
-		this( clss, Scene::new, c );
+	public Scene swap(String root, Function<Parent, Scene> factory) {
+		return swap(root, factory, () -> {});
 	}
 
-	public Document( Class<?> clss, Function<Parent, Scene> f ) throws Exception {
-		this( clss, f, (d) -> {} );
+	public Scene swap(String root, Action action) {
+		return swap(root, scene, action);
 	}
 
-	public Node getNodeById(String id) { return getNodeById( scene.getRoot(), id ); }
+	public Scene swap(String root, Function<Parent, Scene> factory, Action action ) {
+		Parent p = getRoot();	
 
-	public Node getNodeById(Node node, String id) {
+		scene.setRoot( new Parent() {} );
+
+		scene = factory.apply(p);
+
+		return swap( root, scene, action);
+	}
+
+	private Scene swap(String root, Scene scene, Action action) {
+		if ( !now.equals( root )) {
+
+			Action ev = listeners.get( BEFORE_SWAP ).get( root );
+
+			if ( ev != null) {
+
+				ev.execute();
+
+			}
+
+			if ( clear( now ) ) {
+
+				Field f = Engine.getField( root, _class );
+
+				Struct s = Engine.struct( f, _class );
+
+				Parent p = persists.get( root ) ? Engine.root( f, _self ) : null;
+						
+				if ( p == null ) {
+
+					p = Engine.root( s );
+
+					Engine.setFieldValue( f, _self, p );
+
+				} 
+
+				scene.setRoot( p );	
+
+				ev = listeners.get( SWAP ).get( root );
+
+				if ( ev != null) {
+
+					ev.execute();
+
+				}
+				
+				Engine.reload( _path, Engine.styles( s ) );
+
+				scene.getStylesheets().clear();
+
+				scene.getStylesheets().add( _path.toUri().toString() );
+
+				ev = listeners.get( AFTER_SWAP ).get( root );
+
+				if ( ev != null) {
+
+					ev.execute();
+
+				}
+				
+				now = root;
+
+				action.execute();
+			}
+		}
+		return scene;
+	}
+
+	public boolean clear( String root ) {
+		if ( persists.get( root ) ) {
+			return true;
+		}
+		if ( Engine.clear( Engine.getField( root, _class ), _self ) ) {
+			Action ev = listeners.get( DESTROY ).get( root );
+
+			if ( ev != null) {
+
+				ev.execute();
+
+			}
+
+			return true;
+		}
+		
+		return false;
+	}	
+
+	public void on(int[] ops, String root, Action action) {
+		for ( int op : ops) {
+			on( op, root, action );	
+		}
+	}
+
+	public void onSwap(String root, Action ev) {
+		on( SWAP, root, ev);
+	}
+
+	public void onAfterSwap(String root, Action ev) {
+		on( AFTER_SWAP, root, ev);
+	}
+
+	public void onBeforeSwap(String root, Action ev) {
+		on(BEFORE_SWAP,root, ev);
+	}
+
+	public void onDestroy(String root, Action ev) {
+		on(DESTROY,root, ev);
+	}
+
+	public void on(int op, String root, Action action) {
+		listeners.get( op ).put( root , action );
+	}
+
+	public void setPersists( String root ) {
+		this.persists.put(root, true);	
+	}
+	
+	public void setPersists( String root, boolean value) {
+		if ( persists.containsKey(root) ) {
+			this.persists.put(root, value);	
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T extends Node> T getNodeById(String id) { return (T) getNodeById( scene.getRoot(), id ); }
+
+	@SuppressWarnings("unchecked")
+	public <T extends Node> T getNodeById(Node node, String id) {
 
 		if ( id.equals( node.getId() ) ) {
 
-			return node;
+			return (T) node;
 
 		}
 
@@ -121,7 +252,7 @@ public final class Document {
 
 				if ( child != null ) {
 
-					return child;
+					return (T) child;
 
 				}
 
@@ -209,186 +340,24 @@ public final class Document {
 		return node.lookupAll( selector );
 	}
 
-	public Scene swap(String root) {
-		return swap( root, scene, () -> {} );
-	}
-
-	public Scene swap(String root, Function<Parent, Scene> factory) {
-		return swap(root, factory, () -> {});
-	}
-
-	public Scene swap(String root, Action action) {
-		return swap(root, scene, action);
-	}
-
-	public Scene swap(String root, Function<Parent, Scene> factory, Action action ) {
-		Parent p = getRoot();	
-
-		scene.setRoot( new Parent() {} );
-
-		scene = factory.apply(p);
-
-		return swap( root, scene, action);
-	}
-
-	private Scene swap(String root, Scene scene, Action action) {
-		if ( !root.equals( now )) {
-			if ( !posibles.contains( root ) )  System.err.println("Error: Field root dont exist");
-			else {
-				Object i = _self;
-
-				Class<?> c = _self.getClass();
-
-				Action ev = listeners.get( BEFORE_SWAP ).get(now);
-
-				if ( ev != null) {
-
-					ev.execute();
-
-				}
-
-				clear( now );
-				
-				Field f = Engine.getField( root, c );
-
-				Struct m = Engine.struct( f, c );
-
-				Parent p = Engine.root( m );
-
-				String s = Engine.styles( m );
-				
-				Engine.define( f, i, p );
-
-				now = root;
-
-				scene.setRoot( p );
-
-				ev = listeners.get( SWAP ).get( now );
-
-				if ( ev != null) {
-
-					ev.execute();
-
-				}
-
-				Engine.reload( _path, s );
-
-				scene.getStylesheets().clear();
-
-				scene.getStylesheets().add( _path.toUri().toString() );
-
-				ev = listeners.get( AFTER_SWAP ).get( now );
-
-				if ( ev != null) {
-
-					ev.execute();
-
-				}
-
-				action.execute();
-			}
-		}
-		return scene;
-	}
-
-	public void clear(String root) {
-		Class<?> c = _self.getClass();
-
-		Field f = Engine.getField( root, c );
-
-		if ( !persists.get(root) ) {
-
-			Engine.clear( f, _self );
-
-			Action ev = listeners.get( DESTROY ).get( now );
-
-			if ( ev != null) {
-
-				ev.execute();
-
-			}
-
-		}
-	}
-
-	public void on(int[] ops, String root, Action action) {
-		for ( int op : ops) {
-			on( op, root, action );	
-		}
-	}
-
-	public void onSwap(String root, Action ev) {
-		on( SWAP, root, ev);
-	}
-
-	public void onAfterSwap(String root, Action ev) {
-		on( AFTER_SWAP, root, ev);
-	}
-
-	public void onBeforeSwap(String root, Action ev) {
-		on(BEFORE_SWAP,root, ev);
-	}
-
-	public void onDestroy(String root, Action ev) {
-		on(DESTROY,root, ev);
-	}
-
-	public void on(int op, String root, Action action) {
-		listeners.get( op ).put( root , action );
-	}
-
 	@SuppressWarnings("unchecked")
 	public <T> T getSelfModel() {
 		return (T) _self;
 	}
-
+	
 	public Scene getScene() {
 		return scene;
 	}
-	
-	public void setPersists( String root ) {
-		setPersists(root, true);
-	}
 
-	public void setPersists( String root, boolean value) {
-		if ( persists.containsKey(root) ) {
-			this.persists.put(root, value);	
-		}
-	}
-
-	public Parent getRoot() {
-		return scene.getRoot();
-	}
-
-	public Animation animation( String name ) {
-		return animations.get(name);
-	}
-
-	public Animation animation( String name, Animate animate ) {
-		return animation(name, animations.get(name), animate);
+	@SuppressWarnings("unchecked")
+	public <T extends Node> T getRoot() {
+		return (T) scene.getRoot();
 	}
 	
-	public Animation animation( String name, Function<Timeline, Animation> factory ) {
-		Animation a = factory.apply( null );
-		animations.put(name, a);
-		return a;
+	 public Path getTempFile() {
+		return _path;
 	}
-	
-	public Animation animation( String name, Function<Timeline, Animation> factory, Animate animate ) {
-		return animation( name, animation(name, factory), animate );
-	}
-	
-	private Animation animation( String name, Animation animation, Animate animate ) {
-		
-		animate.action(animation);
 
-		return animation;
-	}
-	
-	@FunctionalInterface
-	public interface Action { void execute(); }
-
-	@FunctionalInterface
-	public interface Animate { void action( Animation a ); }
+	@FunctionalInterface public interface Action { void execute(); }
 
 }
