@@ -125,7 +125,7 @@ public class Link {
 
             case "right":  border.setRight(child);  break;
 
-            default:       border.setCenter(child); break; // Default é sempre o centro
+            default:       border.setCenter(child); break; // Default ï¿½ sempre o centro
 
         }
 	}

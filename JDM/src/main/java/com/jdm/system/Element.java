@@ -90,7 +90,7 @@ public class Element {
 
 	}
 
-	Element pack() {
+	public Element pack() {
 
 		configure( this, Element::ID );
 
@@ -110,7 +110,7 @@ public class Element {
 
 	}
 	
-	Element err() {
+	public Element err() {
 
 		configure( this, Element::ID );
 

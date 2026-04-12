@@ -1,27 +1,65 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.jdm</groupId>
-  <artifactId>JDM</artifactId>
-  <version>2.13.1-SNAPSHOT</version>
-  <name>JDM</name>
-  <description>Transforma Classes Java em Modelos de Documento</description>
-  <build>
-    <sourceDirectory>src</sourceDirectory>
-    <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.8.0</version>
-        <configuration>
-          <release>10</release>
-        </configuration>
-      </plugin>
-    </plugins>
-  </build>
-  <dependencies>
-  	<dependency>
-  		<groupId>org.openjfx</groupId>
-  		<artifactId>javafx-controls</artifactId>
-  		<version>11</version>
-  	</dependency>
-  </dependencies>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.jdm</groupId>
+	<artifactId>JDM</artifactId>
+	<version>3.0-SNAPSHOT</version>
+	<name>JDM</name>
+	<description>Transforma Classes Java em Modelos de Documento</description>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>org.openjfx</groupId>
+			<artifactId>javafx-controls</artifactId>
+			<version>11</version>
+			<scope>provid</scope>
+		</dependency>
+
+	</dependencies>
+
+	<profiles>
+
+		<profile>
+			<id>default</id>
+			<activation>
+				<activeByDefault>true</activeByDefault>
+			</activation>
+			<properties>
+				<mavem.compiler.source>${java.version}</mavem.compiler.source>
+				<mavem.compiler.target>${java.version}</mavem.compiler.target>
+			</properties>
+		</profile>
+
+		<profile>
+			<id> dev </id>
+			<activation>
+				<file>
+					<exists>dev-arch.txt</exists>
+				</file>
+			</activation>
+			<properties>
+				<mavem.compiler.source>1.8</mavem.compiler.source>
+				<mavem.compiler.target>1.8</mavem.compiler.target>
+			</properties>
+		</profile>
+	</profiles>
+
+	<build>
+		<sourceDirectory>src</sourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.8.1</version>
+				<configuration>
+					<source>${mavem.compiler.source}</source>
+					<target>${mavem.compiler.target}</target>
+					<encoding>UTF-8</encoding>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
 </project>
